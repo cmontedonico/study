@@ -122,7 +122,8 @@ Multiusuario/login, herramientas de agente sobre carpetas, otros proveedores
 7. **Tutor de ajedrez** — notación algebraica, FEN/PGN/capturas, aperturas, táctica, finales y análisis de partidas; avisa de que no tiene motor.
 8. **Tutor de guitarra acústica** — lectura de música, estudios por nivel (Carulli, Sor, Brouwer, Villa-Lobos…), plan semanal de práctica y teoría aplicada.
 9. **Tutor e investigador de IA** — tendencias sin humo (avisa de su fecha de corte) y ayuda para diseñar y construir soluciones de IA.
-10. **En blanco** — sin instrucciones.
+10. **Asistente de tareas** — ayuda con tareas mediante pistas graduales sin dar la respuesta final; revisa tu razonamiento y cierra con una reflexión.
+11. **En blanco** — sin instrucciones.
 
 ## Plantillas de referencia en el mercado
 
