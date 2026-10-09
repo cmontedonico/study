@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { chatRoutes } from "./chat.ts";
 import { fileRoutes } from "./files.ts";
 import { projectRoutes } from "./projects.ts";
+import { searchRoutes } from "./search.ts";
 import { settingsRoutes } from "./settings.ts";
 import { stateRoutes } from "./state.ts";
 import { threadRoutes } from "./threads.ts";
@@ -14,4 +15,5 @@ export const api = new Hono()
   .route("/threads", threadRoutes)
   .route("/chat", chatRoutes)
   .route("/files", fileRoutes)
-  .route("/settings", settingsRoutes);
+  .route("/settings", settingsRoutes)
+  .route("/search", searchRoutes);

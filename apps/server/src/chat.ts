@@ -1,11 +1,11 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, generateText, streamText, type UIMessage } from "ai";
 import { claudeCode } from "ai-sdk-provider-claude-code";
 import { and, eq } from "drizzle-orm";
 import { mkdirSync } from "node:fs";
 import { nanoid } from "nanoid";
 import { join } from "node:path";
-import { db, schema } from "./db.ts";
+import { db, reindexThread, schema } from "./db.ts";
 import { asDocumentText, getFile, readAsDataUrl } from "./files.ts";
 import { apiModelIds, isModelAlias } from "./models.ts";
 import { dataDir } from "./paths.ts";
@@ -92,6 +92,44 @@ export async function saveThreadMessages(threadId: string, messages: UIMessage[]
       .where(eq(schema.threads.id, threadId))
       .run();
   });
+  reindexThread(threadId);
+}
+
+const textOfMessage = (m: UIMessage | undefined) =>
+  m?.parts.flatMap((p) => (p.type === "text" ? [p.text] : [])).join("\n").trim() ?? "";
+
+/**
+ * Replaces the truncated-first-message title with a short Haiku summary. Only touches threads whose
+ * title is still the automatic fallback, so manual renames (and earlier auto titles) are never overwritten.
+ */
+export async function generateThreadTitle(threadId: string, messages: UIMessage[]) {
+  const thread = await db.query.threads.findFirst({ where: eq(schema.threads.id, threadId) });
+  if (!thread || thread.titleSource !== "auto") return;
+  const firstUser = messages.find((m) => m.role === "user");
+  const assistant = textOfMessage(messages.find((m) => m.role === "assistant"));
+  if (!assistant || thread.title !== titleFrom(firstUser)) return;
+
+  const { text } = await generateText({
+    model: resolveModel(thread.engine as Engine, "haiku"),
+    prompt:
+      "Escribe un título de máximo 6 palabras, en español, sin comillas ni punto final, para esta conversación. " +
+      "Responde solo con el título.\n\n" +
+      `Usuario: ${textOfMessage(firstUser).slice(0, 500)}\n\nAsistente: ${assistant.slice(0, 500)}`,
+  });
+  const title = (text.trim().split("\n")[0] ?? "").replace(/^["'“”«»\s]+|["'“”«»\s.]+$/g, "").slice(0, 60);
+  if (!title) return;
+  const updated = await db
+    .update(schema.threads)
+    .set({ title })
+    .where(
+      and(
+        eq(schema.threads.id, threadId),
+        eq(schema.threads.titleSource, "auto"),
+        eq(schema.threads.title, thread.title),
+      ),
+    )
+    .returning({ id: schema.threads.id });
+  if (updated.length) reindexThread(threadId);
 }
 
 export async function handleChat(threadId: string, messages: UIMessage[], abortSignal: AbortSignal) {
@@ -119,7 +157,13 @@ export async function handleChat(threadId: string, messages: UIMessage[], abortS
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     generateMessageId: nanoid,
-    onEnd: ({ messages: finalMessages }) => saveThreadMessages(threadId, finalMessages),
+    onEnd: async ({ messages: finalMessages }) => {
+      await saveThreadMessages(threadId, finalMessages);
+      // Fire and forget: the stream must not wait for the title.
+      generateThreadTitle(threadId, finalMessages).catch((error) =>
+        console.warn("[title] could not generate title:", error instanceof Error ? error.message : error),
+      );
+    },
     onError: (error) => (error instanceof Error ? error.message : String(error)),
   });
 }
