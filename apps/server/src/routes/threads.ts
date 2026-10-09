@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, lte } from "drizzle-orm";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -50,4 +50,44 @@ threadRoutes.get("/:id/messages", async (c) => {
     .where(eq(schema.messages.threadId, c.req.param("id")))
     .orderBy(asc(schema.messages.position));
   return c.json(rows.map(({ id, role, parts }) => ({ id, role, parts })));
+});
+
+threadRoutes.post("/:id/fork", async (c) => {
+  const { messageId } = z.object({ messageId: z.string() }).parse(await c.req.json());
+  const parent = await db.query.threads.findFirst({ where: eq(schema.threads.id, c.req.param("id")) });
+  if (!parent) throw new Error("Hilo no encontrado");
+  const upTo = await db.query.messages.findFirst({
+    where: and(eq(schema.messages.threadId, parent.id), eq(schema.messages.id, messageId)),
+  });
+  if (!upTo) throw new Error("Mensaje no encontrado");
+
+  const copied = db
+    .select()
+    .from(schema.messages)
+    .where(and(eq(schema.messages.threadId, parent.id), lte(schema.messages.position, upTo.position)))
+    .orderBy(asc(schema.messages.position))
+    .all();
+
+  const thread = db.transaction((tx) => {
+    const created = tx
+      .insert(schema.threads)
+      .values({
+        id: nanoid(),
+        projectId: parent.projectId,
+        title: `${parent.title} (rama)`,
+        model: parent.model,
+        engine: parent.engine,
+        parentThreadId: parent.id,
+        forkedFromMessageId: messageId,
+      })
+      .returning()
+      .get();
+    for (const m of copied) {
+      tx.insert(schema.messages)
+        .values({ id: m.id, threadId: created.id, role: m.role, parts: m.parts, position: m.position })
+        .run();
+    }
+    return created;
+  });
+  return c.json(thread);
 });
