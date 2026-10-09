@@ -9,6 +9,7 @@ import { settingsRoutes } from "./settings.ts";
 import { stateRoutes } from "./state.ts";
 import { templateRoutes } from "./templates.ts";
 import { threadRoutes } from "./threads.ts";
+import { transcribeRoutes } from "./transcribe.ts";
 
 // One module per resource; new features add a module and a single line here.
 export const api = new Hono()
@@ -22,4 +23,5 @@ export const api = new Hono()
   .route("/knowledge", knowledgeRoutes)
   .route("/templates", templateRoutes)
   .route("/settings", settingsRoutes)
-  .route("/search", searchRoutes);
+  .route("/search", searchRoutes)
+  .route("/transcribe", transcribeRoutes);

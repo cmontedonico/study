@@ -2,7 +2,7 @@ import { convertToModelMessages, generateText, streamText, type UIMessage } from
 import { and, asc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, reindexThread, schema } from "./db.ts";
-import { asDocumentText, getFile, readAsDataUrl } from "./files.ts";
+import { asAudioTranscript, asDocumentText, getFile, isAudio, readAsDataUrl } from "./files.ts";
 import { resolveModel, type Engine } from "./model.ts";
 
 /**
@@ -23,6 +23,7 @@ async function resolveFileParts(messages: UIMessage[], engine: Engine): Promise<
           if (file.mediaType.startsWith("image/") || nativePdf) {
             return { ...part, url: await readAsDataUrl(file) };
           }
+          if (isAudio(file.mediaType)) return { type: "text" as const, text: asAudioTranscript(file) };
           return { type: "text" as const, text: asDocumentText(file) };
         }),
       ),
