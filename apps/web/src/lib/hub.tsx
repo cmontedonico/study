@@ -1,4 +1,4 @@
-import { createContext, use, useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, use, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { toast } from "sonner";
 import { api, type HubState } from "./api";
 
@@ -24,9 +24,29 @@ export function HubProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<HubState | null>(null);
   const threadId = useSyncExternalStore(subscribeHash, readThreadId);
 
+  const followUp = useRef<ReturnType<typeof setTimeout>>(undefined);
+
   const refresh = useCallback(async () => {
     try {
-      setState(await api.state());
+      const next = await api.state();
+      setState(next);
+      // The server may rename a chat with Haiku a few seconds after a reply finishes: look once more.
+      const justUpdated = next.threads.some((t) => Date.now() - t.updatedAt < 15_000);
+      if (justUpdated && followUp.current === undefined) {
+        // Haiku on the CLI engine can take several seconds: two delayed looks, then stop.
+        const look = (delays: number[]) => {
+          const [delay, ...rest] = delays;
+          if (delay === undefined) {
+            followUp.current = undefined;
+            return;
+          }
+          followUp.current = setTimeout(() => {
+            void api.state().then(setState, () => undefined);
+            look(rest);
+          }, delay);
+        };
+        look([4000, 6000]);
+      }
     } catch (error) {
       toast.error(`No se pudo conectar con el servidor: ${(error as Error).message}`);
     }
