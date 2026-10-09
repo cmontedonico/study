@@ -5,6 +5,8 @@ import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
+import { accessAuth } from "./auth.ts";
+import { ensureAccessToken } from "./routes/access.ts";
 import { api } from "./routes/index.ts";
 
 const port = Number(process.env.PORT ?? 4317);
@@ -13,6 +15,7 @@ const host = process.env.HOST ?? "0.0.0.0"; // reachable from iPad/iPhone over T
 const webDist = process.env.HUB_WEB_DIST ?? join(dirname(fileURLToPath(import.meta.url)), "../../web/dist");
 
 const app = new Hono();
+app.use("*", accessAuth({ getToken: ensureAccessToken }));
 app.use("/api/*", logger());
 app.route("/api", api);
 

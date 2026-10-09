@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "./db.ts";
 
-export type SettingKey = "anthropicApiKey" | "defaultEngine" | "defaultModel";
+export type SettingKey = "anthropicApiKey" | "defaultEngine" | "defaultModel" | "accessToken";
 
 export function getSetting(key: SettingKey): string | undefined {
   return db.select().from(schema.settings).where(eq(schema.settings.key, key)).get()?.value;
