@@ -1,0 +1,12 @@
+{
+  "name": "claude-hub",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @hub/server --filter @hub/web dev",
+    "desktop": "pnpm --filter @hub/web build && pnpm --filter @hub/desktop dev",
+    "start": "pnpm --filter @hub/web build && pnpm --filter @hub/server start",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
