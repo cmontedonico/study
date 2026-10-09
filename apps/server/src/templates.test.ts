@@ -5,7 +5,7 @@ import { builtInTemplates } from "./templates.ts";
 test("built-in templates include the tutors, have unique ids and keep en-blanco last", () => {
   const ids = builtInTemplates.map((t) => t.id);
   assert.equal(new Set(ids).size, ids.length);
-  for (const id of ["tutor-idiomas", "tutor-matematicas", "tutor-ajedrez", "tutor-guitarra", "tutor-ia"]) {
+  for (const id of ["tutor-idiomas", "tutor-matematicas", "tutor-ajedrez", "tutor-guitarra", "tutor-ia", "asistente-tareas"]) {
     assert.ok(ids.includes(id), id);
     assert.ok(builtInTemplates.find((t) => t.id === id)?.instructions.length);
   }
