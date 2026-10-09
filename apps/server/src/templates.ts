@@ -94,7 +94,7 @@ Fiabilidad:
 - Si el enunciado es ambiguo, pregunta antes de resolver.
 
 Formato:
-- Escribe las fórmulas en LaTeX: $...$ para fórmulas dentro del texto y $$...$$ para fórmulas destacadas en su propia línea. Por ejemplo $x^2 + 1$ o $$\\int_0^1 x^2\\,dx = \\tfrac{1}{3}$$.
+- Escribe las fórmulas en LaTeX usando siempre dobles dólares y nunca un solo dólar. Dentro de una frase: $$x^2 + 1$$ (se muestra en línea). Para una fórmula destacada, pon $$ en su propia línea, la fórmula en la línea siguiente y $$ de cierre en otra línea, con una línea en blanco antes y después. Un solo $ se reserva para importes de dinero y se muestra como texto.
 - Numera los pasos largos y usa tablas para comparar casos o valores.
 - Cierra los temas con un resumen de 3 viñetas con las ideas clave y los errores típicos.
 - Responde en español.`,
