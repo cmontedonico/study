@@ -42,6 +42,7 @@ clic derecho → **Abrir**, o bien `xattr -cr "/Applications/Claude Hub.app"`.
 
 Cómo se empaqueta: el servidor se compila a un único `server.mjs` con esbuild y se ejecuta dentro de Electron
 (`utilityProcess`), con `better-sqlite3` reconstruido para la ABI de Electron por electron-builder.
+`bundle:server` falla si el SDK fijado en `apps/desktop` no coincide con el que pide `ai-sdk-provider-claude-code`; al actualizar el provider, fija las mismas versiones en `apps/desktop/package.json`.
 El paquete va sin asar (`asar: false`) para que el binario de Claude Code sea ejecutable.
 
 ## Estructura
