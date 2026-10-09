@@ -1,4 +1,4 @@
-# Claude Hub — Especificación v1
+# StudyLab — Especificación v1 (antes llamado Claude Hub)
 
 App personal de chat con Claude, organizada por proyectos, que usa el CLI de Claude
 (tu suscripción) o una API key de Anthropic. Escritorio en Mac (Electron) y acceso
@@ -34,7 +34,7 @@ desde iPad / iPhone como PWA conectada a la Mac.
 │   │     │                (Claude Agent SDK → tu CLI)  │
 │   │     └─ motor "api" → @ai-sdk/anthropic (API key)  │
 │   ├─ SQLite (Drizzle) en ~/Library/Application       │
-│   │     Support/claude-hub/hub.db                    │
+│   │     Support/StudyLab/data/hub.db                 │
 │   └─ sirve el build de apps/web                      │
 │                                                      │
 │ apps/web      Vite + React + Tailwind + shadcn +     │

@@ -1,6 +1,6 @@
 {
-  "name": "Claude Hub",
-  "short_name": "Claude Hub",
+  "name": "StudyLab",
+  "short_name": "StudyLab",
   "description": "Chat personal con Claude por proyectos",
   "lang": "es",
   "start_url": "/",

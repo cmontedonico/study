@@ -17,13 +17,13 @@
     "@anthropic-ai/claude-agent-sdk": "0.3.283",
     "better-sqlite3": "^13.0.3"
   },
-  "description": "Claude Hub desktop app",
+  "description": "StudyLab desktop app",
   "version": "0.1.0",
   "author": "Cesare Montedonico",
   "build": {
-    "appId": "com.cmontedonico.claudehub",
-    "productName": "Claude Hub",
-    "executableName": "Claude Hub",
+    "appId": "com.cmontedonico.studylab",
+    "productName": "StudyLab",
+    "executableName": "StudyLab",
     "directories": {
       "output": "out",
       "buildResources": "build"
@@ -55,7 +55,7 @@
       "identity": null
     },
     "dmg": {
-      "title": "Claude Hub"
+      "title": "StudyLab"
     },
     "asar": false
   },

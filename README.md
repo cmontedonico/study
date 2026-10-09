@@ -1,4 +1,6 @@
-# Claude Hub
+# StudyLab
+
+> Antes llamado Claude Hub.
 
 Chat personal con Claude organizado por proyectos. Usa tu CLI de `claude` (suscripción)
 o una API key de Anthropic. Ver [SPEC.md](SPEC.md) para alcance y fases.
@@ -41,16 +43,16 @@ App de macOS (Apple Silicon) que funciona sin el repo, pnpm ni Node instalados.
 
 ```bash
 pnpm install
-pnpm desktop:dist   # compila web + servidor y genera apps/desktop/out/Claude Hub-<versión>-arm64.dmg
+pnpm desktop:dist   # compila web + servidor y genera apps/desktop/out/StudyLab-<versión>-arm64.dmg
 ```
 
-Abre el `.dmg` y arrastra **Claude Hub** a Aplicaciones. La app no está firmada: la primera vez,
-clic derecho → **Abrir**, o bien `xattr -cr "/Applications/Claude Hub.app"`.
+Abre el `.dmg` y arrastra **StudyLab** a Aplicaciones. La app no está firmada: la primera vez,
+clic derecho → **Abrir**, o bien `xattr -cr "/Applications/StudyLab.app"`.
 
 - **Segundo plano**: cerrar la ventana no detiene el servidor (el iPad/iPhone siguen conectados).
-  Hay un icono en la barra de menús con "Abrir Claude Hub" y "Salir"; salir detiene el servidor.
-- **Iniciar al abrir sesión**: menú *Claude Hub → Iniciar al abrir sesión*.
-- Datos en `~/Library/Application Support/claude-hub`; puerto 4317 (o `PORT`). Si ya hay un servidor en ese puerto, la app lo reutiliza.
+  Hay un icono en la barra de menús con "Abrir StudyLab" y "Salir"; salir detiene el servidor.
+- **Iniciar al abrir sesión**: menú *StudyLab → Iniciar al abrir sesión*.
+- Datos en `~/Library/Application Support/StudyLab/data` (antes `claude-hub`; se migra solo al arrancar); puerto 4317 (o `PORT`). Si ya hay un servidor en ese puerto, la app lo reutiliza.
 - El motor "CLI" usa el binario nativo de Claude Code incluido en la app (`@anthropic-ai/claude-agent-sdk-darwin-arm64`);
   hay que haber iniciado sesión en Claude Code (`claude` → `/login`) o usar el motor API con tu key.
 
@@ -60,6 +62,6 @@ Cómo se empaqueta: el servidor se compila a un único `server.mjs` con esbuild 
 El paquete va sin asar (`asar: false`) para que el binario de Claude Code sea ejecutable.
 
 ## Estructura
-- `apps/server` — Hono + AI SDK + SQLite (Drizzle). Datos en `~/Library/Application Support/claude-hub`.
+- `apps/server` — Hono + AI SDK + SQLite (Drizzle). Datos en `~/Library/Application Support/StudyLab/data` (antes `claude-hub`; se migra solo al arrancar).
 - `apps/web` — Vite + React + shadcn + AI Elements.
 - `apps/desktop` — Electron (ventana nativa sobre el servidor).

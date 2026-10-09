@@ -133,7 +133,7 @@ export function AppSidebar() {
           <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
             C
           </div>
-          <span className="font-semibold">Claude Hub</span>
+          <span className="font-semibold">StudyLab</span>
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
