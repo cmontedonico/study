@@ -81,3 +81,13 @@ test("audio attachments are wrapped as a transcript", () => {
     '<audio_transcript name="nota.wav">\nhola\n</audio_transcript>',
   );
 });
+
+test("parseRange handles open, suffix and invalid ranges", async () => {
+  const { parseRange } = await import("./routes/files.ts");
+  assert.deepEqual(parseRange("bytes=0-99", 1000), { start: 0, end: 99 });
+  assert.deepEqual(parseRange("bytes=900-", 1000), { start: 900, end: 999 });
+  assert.deepEqual(parseRange("bytes=-100", 1000), { start: 900, end: 999 });
+  assert.deepEqual(parseRange("bytes=0-5000", 1000), { start: 0, end: 999 });
+  assert.equal(parseRange("bytes=2000-3000", 1000), null);
+  assert.equal(parseRange(undefined, 1000), null);
+});
