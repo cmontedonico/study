@@ -1,13 +1,7 @@
 import { Folder, MessageSquare } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { api, type SearchResult } from "@/lib/api";
 import { useHub } from "@/lib/hub";
 
@@ -30,7 +24,13 @@ function Highlighted({ text }: { text: string }) {
   );
 }
 
-export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function SearchDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const { state, openThread } = useHub();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -78,45 +78,50 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const projectName = (id: string | null) => state?.projects.find((p) => p.id === id)?.name;
 
   return (
-    <CommandDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Buscar"
-      description="Busca en el título y el contenido de todos los chats"
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Not CommandDialog: it renders its sr-only title outside the content, so it leaks into the page while closed. */}
+      <DialogContent
+        className="top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0"
+        showCloseButton={false}
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Buscar</DialogTitle>
+          <DialogDescription>Busca en el título y el contenido de todos los chats</DialogDescription>
+        </DialogHeader>
         <Command shouldFilter={false}>
-        <CommandInput placeholder="Buscar en todos los chats…" value={query} onValueChange={setQuery} />
-        <CommandList>
-          {searched && results.length === 0 && <CommandEmpty>Sin resultados.</CommandEmpty>}
-          {results.map((r) => {
-            const project = projectName(r.projectId);
-            return (
-              <CommandItem
-                key={r.threadId}
-                value={r.threadId}
-                className="flex-col items-start gap-0.5"
-                onSelect={() => {
-                  openThread(r.threadId);
-                  onOpenChange(false);
-                }}
-              >
-                <div className="flex w-full items-center gap-2">
-                  <MessageSquare className="text-muted-foreground" />
-                  <span className="truncate font-medium">{r.title}</span>
-                  {project && (
-                    <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                      <Folder className="size-3" /> {project}
-                    </span>
-                  )}
-                </div>
-                <p className="line-clamp-2 w-full pl-6 text-xs text-muted-foreground">
-                  <Highlighted text={r.snippet} />
-                </p>
-              </CommandItem>
-            );
-          })}
-      </CommandList>
-      </Command>
-    </CommandDialog>
+          <CommandInput placeholder="Buscar en todos los chats…" value={query} onValueChange={setQuery} />
+          <CommandList>
+            {searched && results.length === 0 && <CommandEmpty>Sin resultados.</CommandEmpty>}
+            {results.map((r) => {
+              const project = projectName(r.projectId);
+              return (
+                <CommandItem
+                  key={r.threadId}
+                  value={r.threadId}
+                  className="flex-col items-start gap-0.5"
+                  onSelect={() => {
+                    openThread(r.threadId);
+                    onOpenChange(false);
+                  }}
+                >
+                  <div className="flex w-full items-center gap-2">
+                    <MessageSquare className="text-muted-foreground" />
+                    <span className="truncate font-medium">{r.title}</span>
+                    {project && (
+                      <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                        <Folder className="size-3" /> {project}
+                      </span>
+                    )}
+                  </div>
+                  <p className="line-clamp-2 w-full pl-6 text-xs text-muted-foreground">
+                    <Highlighted text={r.snippet} />
+                  </p>
+                </CommandItem>
+              );
+            })}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }

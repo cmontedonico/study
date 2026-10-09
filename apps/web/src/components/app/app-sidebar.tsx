@@ -238,7 +238,11 @@ function ProjectItem({
   const { refresh, newThread, threadId, openThread } = useHub();
   const containsOpenThread = threads.some((t) => t.id === threadId);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const drop = useThreadDrop((id) => void onMove(id, project));
+  const [open, setOpen] = useState(containsOpenThread || threads.length > 0);
+  const drop = useThreadDrop((id) => {
+    setOpen(true);
+    void onMove(id, project);
+  });
 
   async function remove() {
     try {
@@ -253,7 +257,8 @@ function ProjectItem({
   return (
     <Collapsible
       asChild
-      defaultOpen={containsOpenThread || threads.length > 0}
+      open={open}
+      onOpenChange={setOpen}
       className="group/collapsible"
     >
       <SidebarMenuItem {...drop.props} className={cn(drop.over && dropHighlight)}>
