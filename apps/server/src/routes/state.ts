@@ -13,5 +13,3 @@ stateRoutes.get("/state", async (c) => {
   ]);
   return c.json({ projects, threads, templates, settings: publicSettings() });
 });
-
-stateRoutes.get("/health", (c) => c.json({ ok: true }));

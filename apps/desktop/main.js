@@ -15,11 +15,14 @@ let server; // child we started (undefined when reusing an already-running serve
 let win;
 let tray;
 
-async function isUp() {
+// "ready" | "no-ui" (a hub server that can't serve the page, e.g. a stray dev server) | "down"
+async function probe() {
   try {
-    return (await fetch(`${url}/api/health`)).ok;
+    const res = await fetch(`${url}/api/health`);
+    if (!res.ok) return "down";
+    return (await res.json()).ui ? "ready" : "no-ui";
   } catch {
-    return false;
+    return "down";
   }
 }
 
@@ -42,10 +45,19 @@ function startServer() {
 }
 
 async function ensureServer() {
-  if (await isUp()) return; // already running (e.g. `pnpm dev` or a launchd service)
+  const state = await probe();
+  if (state === "ready") return; // already running (e.g. `pnpm start` or a launchd service)
+  if (state === "no-ui") {
+    throw new Error(
+      `El puerto ${port} lo ocupa otro servidor de Claude Hub sin la interfaz web ` +
+        "(probablemente uno de desarrollo). Ciérralo y vuelve a abrir la app.",
+    );
+  }
   server = startServer();
   for (let i = 0; i < 100; i++) {
-    if (await isUp()) return;
+    const now = await probe();
+    if (now === "ready") return;
+    if (now === "no-ui") throw new Error("Falta la interfaz web. Ejecuta: pnpm --filter @hub/web build");
     await new Promise((r) => setTimeout(r, 200));
   }
   throw new Error("El servidor no arrancó");
