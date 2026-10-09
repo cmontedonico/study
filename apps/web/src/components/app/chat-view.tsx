@@ -4,6 +4,7 @@ import {
   CopyIcon,
   DownloadIcon,
   FileTextIcon,
+  MicIcon,
   GitBranchIcon,
   LoaderCircleIcon,
   PaperclipIcon,
@@ -11,7 +12,7 @@ import {
   RefreshCcwIcon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { toast } from "sonner";
 import {
   Conversation,
@@ -36,11 +37,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
+import { AudioAttachment, AudioChipStatus, AudioUploadsProvider, useAudioUploads } from "@/components/app/audio-uploads";
+import { DictationButton } from "@/components/app/dictation-button";
+import { isAudioFile } from "@/lib/audio";
 import { api, engines, models, type Engine, type ModelAlias, type Thread } from "@/lib/api";
 import { downloadMarkdown, threadToMarkdown } from "@/lib/export";
 import { useHub } from "@/lib/hub";
 
-const accept = "image/*,application/pdf,text/*,.md,.csv,.json";
+/** Files from the prompt input keep the attachment id (see prompt-input.tsx). */
+type PickedFile = FileUIPart & { id: string };
+
+const accept = "image/*,audio/*,application/pdf,text/*,.md,.csv,.json,.m4a,.mp3,.wav,.ogg,.opus,.aac,.flac";
+// Audio is checked after conversion (≤ 60 min); this only caps what the browser will even read.
+const maxFileSize = 200 * 1024 * 1024;
 
 /** Loads a thread's saved messages, then mounts the live chat for it. */
 export function ChatView({ thread }: { thread: Thread }) {
@@ -58,7 +67,11 @@ export function ChatView({ thread }: { thread: Thread }) {
   return (
     <div className="flex h-dvh min-w-0 flex-1 flex-col">
       <ChatHeader thread={thread} />
-      {initial && <Chat key={thread.id} thread={thread} initialMessages={initial} />}
+      {initial && (
+        <AudioUploadsProvider key={thread.id}>
+          <Chat thread={thread} initialMessages={initial} />
+        </AudioUploadsProvider>
+      )}
     </div>
   );
 }
@@ -139,6 +152,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
   const [draft, setDraft] = useState("");
   // Uploading a scanned PDF can take a while (server-side OCR): show it and block double submits.
   const [uploading, setUploading] = useState(false);
+  const audio = useAudioUploads();
   const { messages, sendMessage, regenerate, status, stop, error } = useChat({
     id: thread.id,
     messages: initialMessages,
@@ -155,7 +169,11 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
     let uploaded: FileUIPart[];
     setUploading(true);
     try {
-      uploaded = await Promise.all(files.map((f) => api.upload(f)));
+      uploaded = await Promise.all(
+        files.map((f) =>
+          isAudioFile(f.mediaType, f.filename) ? audio.ensure({ ...f, id: (f as PickedFile).id }) : api.upload(f),
+        ),
+      );
     } catch (e) {
       toast.error((e as Error).message);
       throw e; // keeps the text and attachments in the input so the user can retry
@@ -204,7 +222,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
       <Conversation className="min-h-0 flex-1">
         <ConversationContent className="mx-auto w-full max-w-3xl">
           {messages.length === 0 ? (
-            <ConversationEmptyState title="¿En qué trabajamos hoy?" description="Escribe, o adjunta imágenes, PDFs o textos." />
+            <ConversationEmptyState title="¿En qué trabajamos hoy?" description="Escribe, dicta, o adjunta imágenes, audios, PDFs o textos." />
           ) : (
             messages.map((message) => (
               <Message key={message.id} from={message.role}>
@@ -270,7 +288,14 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
       </Conversation>
 
       <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <PromptInput onSubmit={submit} accept={accept} multiple globalDrop maxFileSize={25 * 1024 * 1024}>
+        <PromptInput
+          className="has-disabled:bg-transparent has-disabled:opacity-100 dark:has-disabled:bg-input/30"
+          onSubmit={submit}
+          accept={accept}
+          multiple
+          globalDrop
+          maxFileSize={maxFileSize}
+        >
           <PromptInputHeader>
             <PendingAttachments uploading={uploading} />
           </PromptInputHeader>
@@ -280,8 +305,9 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
           <PromptInputFooter>
             <PromptInputTools>
               <AttachButton />
+              <DictationButton />
             </PromptInputTools>
-            <PromptInputSubmit status={status} onStop={stop} />
+            <SubmitButton status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>
       </div>
@@ -289,11 +315,20 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
   );
 }
 
+/** Sending waits until every attached audio has been transcribed. */
+function SubmitButton(props: ComponentProps<typeof PromptInputSubmit>) {
+  const { files } = usePromptInputAttachments();
+  const audio = useAudioUploads();
+  const pending = audio.blocks(files.filter((f) => isAudioFile(f.mediaType, f.filename)).map((f) => f.id));
+  return <PromptInputSubmit {...props} disabled={pending} title={pending ? "Esperando la transcripción del audio…" : undefined} />;
+}
+
 function textOf(message: UIMessage) {
   return message.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
 }
 
 function Attachment({ part }: { part: FileUIPart }) {
+  if (isAudioFile(part.mediaType, part.filename)) return <AudioAttachment part={part} />;
   if (part.mediaType.startsWith("image/")) {
     return <img src={part.url} alt={part.filename ?? ""} className="max-h-60 rounded-lg border object-contain" />;
   }
@@ -321,18 +356,35 @@ function AttachButton() {
 
 function PendingAttachments({ uploading }: { uploading: boolean }) {
   const { files, remove } = usePromptInputAttachments();
+  const audio = useAudioUploads();
+  const audioFiles = files.filter((f) => isAudioFile(f.mediaType, f.filename));
+  const audioKey = audioFiles.map((f) => f.id).join();
+  useEffect(() => {
+    for (const f of audioFiles) audio.ensure(f).catch(() => undefined); // errors show on the chip
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioKey]);
   if (files.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2 p-2">
-      {files.map((file) => (
+      {files.map((file) => {
+        const isAudio = isAudioFile(file.mediaType, file.filename);
+        const job = isAudio ? audio.stageOf(file.id) : undefined;
+        return (
         <div key={file.id} className="bg-muted flex items-center gap-1.5 rounded-md py-1 pr-1 pl-2 text-xs">
           {file.mediaType.startsWith("image/") ? (
             <img src={file.url} alt="" className="size-5 rounded object-cover" />
+          ) : isAudio ? (
+            job?.stage === "done" || job?.stage === "error" ? <MicIcon className="size-4" /> : <LoaderCircleIcon className="size-4 animate-spin" />
           ) : (
             <FileTextIcon className="size-4" />
           )}
           <span className="max-w-40 truncate">{file.filename}</span>
-          {uploading ? (
+          {isAudio && (
+            <span className="text-muted-foreground">
+              — <AudioChipStatus stage={job?.stage ?? "converting"} error={job?.error} />
+            </span>
+          )}
+          {uploading && !isAudio ? (
             <span className="text-muted-foreground flex items-center gap-1 pr-1" aria-live="polite">
               <LoaderCircleIcon className="size-3 animate-spin" />
               {file.mediaType === "application/pdf" ? "Leyendo PDF (OCR si es un escaneo)…" : "Subiendo…"}
@@ -343,7 +395,8 @@ function PendingAttachments({ uploading }: { uploading: boolean }) {
             </button>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

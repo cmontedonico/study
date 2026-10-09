@@ -6,6 +6,7 @@ import { extractText, getDocumentProxy } from "unpdf";
 import { db, schema } from "./db.ts";
 import { extractWithOcr } from "./ocr.ts";
 import { filesDir } from "./paths.ts";
+import { transcribeWavBytes } from "./transcribe.ts";
 
 export type StoredFile = typeof schema.files.$inferSelect;
 
@@ -13,6 +14,10 @@ const textLike = /^(text\/|application\/(json|xml|x-yaml|yaml|csv))/;
 
 export function isTextLike(mediaType: string) {
   return textLike.test(mediaType);
+}
+
+export function isAudio(mediaType: string) {
+  return mediaType.startsWith("audio/");
 }
 
 /** `ocrError` is set when a scanned PDF could not be fully read; the file is still stored. */
@@ -38,6 +43,8 @@ export async function saveUpload(file: File, projectId: string | null = null): P
     ocrError = result.error;
   } else if (isTextLike(mediaType)) {
     extractedText = new TextDecoder().decode(bytes);
+  } else if (isAudio(mediaType)) {
+    extractedText = await transcribeWavBytes(bytes);
   }
 
   const [row] = await db
@@ -54,6 +61,11 @@ export async function getFile(id: string) {
 export async function readAsDataUrl(file: StoredFile) {
   const data = await readFile(file.path);
   return `data:${file.mediaType};base64,${data.toString("base64")}`;
+}
+
+/** Audio never goes to the model as binary: Claude only sees what Whisper heard. */
+export function asAudioTranscript(file: Pick<StoredFile, "name" | "extractedText">) {
+  return `<audio_transcript name="${file.name}">\n${file.extractedText ?? ""}\n</audio_transcript>`;
 }
 
 export function asDocumentText(file: Pick<StoredFile, "name" | "extractedText">) {

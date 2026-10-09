@@ -68,6 +68,15 @@ export interface AccessInfo {
   urls: { kind: "tailscale" | "lan"; label: string; url: string }[];
 }
 
+export interface TranscriptionStatus {
+  phase: "idle" | "downloading" | "loading" | "ready" | "error";
+  /** Model files are already on disk: no download needed. */
+  cached: boolean;
+  progress: number;
+  approxMb: number;
+  error?: string;
+}
+
 export const models: { id: ModelAlias; label: string }[] = [
   { id: "opus", label: "Opus" },
   { id: "sonnet", label: "Sonnet" },
@@ -82,7 +91,7 @@ export const engines: { id: Engine; label: string }[] = [
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     ...init,
-    headers: init?.body instanceof FormData ? undefined : { "content-type": "application/json" },
+    headers: init?.headers ?? (init?.body instanceof FormData ? undefined : { "content-type": "application/json" }),
   });
   const body = await res.json();
   if (!res.ok) throw new Error(body.error ?? res.statusText);
@@ -135,11 +144,21 @@ export const api = {
   access: () => request<AccessInfo>("/access"),
   regenerateAccessToken: () => request<AccessInfo>("/access/regenerate", { method: "POST" }),
 
+  transcriptionStatus: () => request<TranscriptionStatus>("/transcribe/status"),
+  /** Dictation: a 16 kHz mono WAV in, plain text out. */
+  transcribe: (wav: Blob, signal?: AbortSignal) =>
+    request<{ text: string }>("/transcribe", { method: "POST", body: wav, headers: { "content-type": "audio/wav" }, signal }),
+  fileTranscript: (url: string) => request<{ text: string }>(url.replace(/^\/api/, "") + "/transcript"),
+
   /** Uploads a file picked in the prompt input and returns a part that references it. */
   async upload(part: FileUIPart, projectId?: string): Promise<FileUIPart> {
     const blob = await (await fetch(part.url)).blob();
+    return api.uploadFile(new File([blob], part.filename ?? "archivo", { type: part.mediaType }), projectId);
+  },
+
+  async uploadFile(file: File, projectId?: string): Promise<FileUIPart> {
     const form = new FormData();
-    form.append("file", new File([blob], part.filename ?? "archivo", { type: part.mediaType }));
+    form.append("file", file);
     if (projectId) form.append("projectId", projectId);
     const saved = await request<{ url: string; name: string; mediaType: string; warning?: string }>("/files", {
       method: "POST",

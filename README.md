@@ -14,6 +14,13 @@ o una API key de Anthropic. Ver [SPEC.md](SPEC.md) para alcance y fases.
   Claude (Haiku, mismo motor que tu ajuste por defecto): solo se procesan las páginas sin texto, hasta 40 por PDF
   (~3 s por página). Vale también para el conocimiento de los proyectos. Usa `@napi-rs/canvas` para rasterizar las páginas.
 
+- Audio y dictado: puedes adjuntar notas de voz (m4a, mp3, wav, ogg, webm…, hasta 60 min) y dictar con el botón del
+  micrófono. La transcripción es **local**: Whisper large-v3-turbo (cuantizado a 4 bits) corre en la Mac con
+  `@huggingface/transformers`; no se envía audio a ningún servicio. Claude recibe el texto (`<audio_transcript>`) y
+  responde siempre por escrito. El modelo (~740 MB) se descarga la primera vez que se usa en `<datos>/models`; después
+  funciona sin conexión. El navegador convierte el audio a WAV de 16 kHz mono antes de subirlo (sin ffmpeg), y el idioma
+  se detecta automáticamente. Una transcripción tarda ~11 s por minuto de audio en un Mac con Apple Silicon.
+
 ## Uso
 
 ```bash
@@ -34,6 +41,7 @@ El servidor de la Mac sirve también la web, así que el iPad/iPhone solo necesi
 
 Notas:
 - Por HTTP plano (`http://nombre-mac:4317`) iOS instala la app pero no registra el service worker (requiere HTTPS), así que no hay caché offline del shell. Para tenerla, publica el servidor con HTTPS de Tailscale: `tailscale serve --bg 4317` y usa `https://nombre-mac.<tailnet>.ts.net`. Las peticiones que llegan por ese proxy (`tailscale serve`/`funnel`, o cualquier proxy inverso con cabeceras `X-Forwarded-For`, `Forwarded`, `X-Real-IP` o `Tailscale-User-*`) se tratan como remotas aunque vengan de localhost, así que también necesitan el token: abre el enlace con `?token=` igual que en el paso 4.
+- **Dictado desde iPad/iPhone**: el micrófono (`getUserMedia`) solo existe en contextos seguros (HTTPS o `localhost`). Con `http://<ip>:4317` el botón del micrófono aparece desactivado con una explicación; adjuntar archivos de audio sí funciona. Para dictar, publica el servidor con HTTPS: `tailscale serve --bg 4317` (una vez; `tailscale serve status` muestra la URL y `tailscale serve reset` la quita) y abre `https://nombre-mac.<tailnet>.ts.net/?token=<token>` (el token es el de *Ajustes → Conectar dispositivo*; esa pantalla solo ofrece URLs `http://`, sustituye el esquema y el host). La app de escritorio ya tiene permiso de micrófono (macOS lo pedirá la primera vez).
 - Seguridad: solo se confía en la propia Mac si la petición llega directa y con `Host` `localhost`/`127.0.0.1`/`[::1]`; las escrituras (`POST`/`PUT`/…) de `/api/*` con cabecera `Origin` de otro origen se rechazan (403), para que una web cualquiera no pueda llamar a `localhost:4317`.
 - Si el servidor no responde, la app muestra un aviso "Servidor no disponible" y reintenta sola.
 
