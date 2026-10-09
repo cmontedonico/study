@@ -9,7 +9,8 @@ import { api } from "./routes/index.ts";
 
 const port = Number(process.env.PORT ?? 4317);
 const host = process.env.HOST ?? "0.0.0.0"; // reachable from iPad/iPhone over Tailscale/LAN
-const webDist = join(dirname(fileURLToPath(import.meta.url)), "../../web/dist");
+// HUB_WEB_DIST lets the packaged desktop app point at the web build bundled in its resources.
+const webDist = process.env.HUB_WEB_DIST ?? join(dirname(fileURLToPath(import.meta.url)), "../../web/dist");
 
 const app = new Hono();
 app.use("/api/*", logger());

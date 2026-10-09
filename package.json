@@ -7,6 +7,7 @@
     "dev": "pnpm --parallel --filter @hub/server --filter @hub/web dev",
     "desktop": "pnpm --filter @hub/web build && pnpm --filter @hub/desktop dev",
     "start": "pnpm --filter @hub/web build && pnpm --filter @hub/server start",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "desktop:dist": "pnpm --filter @hub/web build && pnpm --filter @hub/desktop dist"
   }
 }

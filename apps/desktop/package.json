@@ -4,9 +4,62 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "dev": "env -u ELECTRON_RUN_AS_NODE electron ."
+    "dev": "env -u ELECTRON_RUN_AS_NODE electron .",
+    "bundle:server": "node scripts/bundle-server.mjs",
+    "dist": "pnpm bundle:server && env -u ELECTRON_RUN_AS_NODE electron-builder --mac dmg --arm64"
   },
   "devDependencies": {
-    "electron": "^44.7.0"
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.283",
+    "better-sqlite3": "^13.0.3"
+  },
+  "description": "Claude Hub desktop app",
+  "version": "0.1.0",
+  "author": "Cesare Montedonico",
+  "build": {
+    "appId": "com.cmontedonico.claudehub",
+    "productName": "Claude Hub",
+    "executableName": "Claude Hub",
+    "directories": {
+      "output": "out",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "assets/**",
+      "server-dist/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web"
+      }
+    ],
+    "npmRebuild": true,
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "identity": null
+    },
+    "dmg": {
+      "title": "Claude Hub"
+    },
+    "asar": false
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/claude-agent-sdk-darwin-arm64": "0.3.283"
   }
 }

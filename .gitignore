@@ -4,3 +4,5 @@ out
 .DS_Store
 *.db
 .env
+release
+apps/desktop/server-dist

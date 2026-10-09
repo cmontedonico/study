@@ -105,7 +105,7 @@ settings       key, value   (anthropicApiKey, defaultEngine, defaultModel, theme
 - [ ] PWA: manifest, iconos, modo standalone, safe areas de iOS
 - [ ] Layout móvil: sidebar como drawer, input fijo abajo
 - [ ] Guía de Tailscale + token de acceso simple (aunque sea red privada)
-- [ ] Empaquetado `.dmg` con electron-builder, autoarranque al iniciar sesión
+- [x] Empaquetado `.dmg` con electron-builder, autoarranque al iniciar sesión
 
 ### Fuera de alcance (por ahora)
 Multiusuario/login, herramientas de agente sobre carpetas, otros proveedores
