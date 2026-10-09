@@ -1,7 +1,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, generateText, streamText, type UIMessage } from "ai";
 import { claudeCode } from "ai-sdk-provider-claude-code";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { mkdirSync } from "node:fs";
 import { nanoid } from "nanoid";
 import { join } from "node:path";
@@ -58,19 +58,53 @@ async function resolveFileParts(messages: UIMessage[], engine: Engine): Promise<
   );
 }
 
-async function buildSystemPrompt(projectId: string | null) {
+/** Max characters of project knowledge injected into the system prompt (~100k tokens). */
+export const KNOWLEDGE_CHAR_LIMIT = 400_000;
+
+export async function buildSystemPrompt(projectId: string | null) {
   if (!projectId) return undefined;
   const project = await db.query.projects.findFirst({ where: eq(schema.projects.id, projectId) });
   if (!project) return undefined;
-  const knowledge = await db.query.files.findMany({ where: eq(schema.files.projectId, projectId) });
+  const knowledge = (
+    await db.query.files.findMany({
+      where: eq(schema.files.projectId, projectId),
+      orderBy: asc(schema.files.createdAt),
+    })
+  ).filter((f) => f.extractedText);
   const sections = [project.instructions.trim()];
   if (knowledge.length) {
-    sections.push(
-      "Conocimiento del proyecto (documentos de referencia):",
-      ...knowledge.filter((f) => f.extractedText).map(asDocumentText),
-    );
+    let remaining = KNOWLEDGE_CHAR_LIMIT;
+    const docs: string[] = [];
+    const incomplete: string[] = [];
+    for (const file of knowledge) {
+      const text = file.extractedText ?? "";
+      if (remaining <= 0) {
+        incomplete.push(file.name);
+        continue;
+      }
+      const clipped = text.length > remaining;
+      docs.push(asDocumentText({ name: file.name, extractedText: clipped ? text.slice(0, remaining) : text }));
+      if (clipped) incomplete.push(`${file.name} (parcial)`);
+      remaining -= text.length;
+    }
+    sections.push("Conocimiento del proyecto (documentos de referencia):", ...docs);
+    if (incomplete.length) {
+      sections.push(
+        `Nota: el conocimiento del proyecto superó el límite de ${KNOWLEDGE_CHAR_LIMIT} caracteres y se truncó. Incompleto u omitido: ${incomplete.join(", ")}.`,
+      );
+    }
   }
   return sections.filter(Boolean).join("\n\n") || undefined;
+}
+
+/** On the API engine the system prompt is a cacheable message, so the knowledge is billed once per session. */
+export function toInstructions(system: string | undefined, engine: Engine) {
+  if (!system || engine !== "api") return system;
+  return {
+    role: "system" as const,
+    content: system,
+    providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+  };
 }
 
 function titleFrom(message: UIMessage | undefined) {
@@ -149,7 +183,7 @@ export async function handleChat(threadId: string, messages: UIMessage[], abortS
   const engine = thread.engine as Engine;
   const result = streamText({
     model: resolveModel(engine, thread.model),
-    instructions: await buildSystemPrompt(thread.projectId),
+    instructions: toInstructions(await buildSystemPrompt(thread.projectId), engine),
     messages: await convertToModelMessages(await resolveFileParts(messages, engine)),
     abortSignal,
   });

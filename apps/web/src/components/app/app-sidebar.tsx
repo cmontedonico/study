@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
   Settings,
+  Shapes,
   Trash2,
 } from "lucide-react";
 import { useState, type ComponentProps, type DragEvent } from "react";
@@ -59,6 +60,7 @@ import { useHub } from "@/lib/hub";
 import { ProjectDialog } from "./project-dialog";
 import { SearchDialog } from "./search-dialog";
 import { SettingsDialog } from "./settings-dialog";
+import { TemplatesDialog } from "./templates-dialog";
 
 const THREAD_MIME = "application/x-hub-thread";
 
@@ -118,6 +120,7 @@ export function AppSidebar() {
   }
 
   const chatsDrop = useThreadDrop((id) => void moveThread(id, null));
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const projects = state?.projects ?? [];
   const threads = state?.threads ?? [];
@@ -204,6 +207,12 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => setTemplatesOpen(true)}>
+              <Shapes />
+              Plantillas
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton onClick={() => setSettingsOpen(true)}>
               <Settings />
               Ajustes
@@ -218,6 +227,7 @@ export function AppSidebar() {
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       <RenameDialog thread={renaming} onClose={() => setRenaming(null)} />
+      <TemplatesDialog open={templatesOpen} onOpenChange={setTemplatesOpen} />
     </Sidebar>
   );
 }

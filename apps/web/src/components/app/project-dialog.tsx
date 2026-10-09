@@ -1,22 +1,41 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api, type Project } from "@/lib/api";
 import { useHub } from "@/lib/hub";
 import { cn } from "@/lib/utils";
+import { KnowledgePanel } from "./knowledge-panel";
 
 /** Creates a project from a template, or edits an existing project's name, icon and instructions. */
 export function ProjectDialog({ project, onClose }: { project?: Project; onClose: () => void }) {
   const { state, refresh, newThread } = useHub();
-  const templates = state?.templates ?? [];
+  // "En blanco" goes last so the guided templates come first.
+  const templates = [...(state?.templates ?? [])].sort(
+    (a, b) => Number(a.id === "en-blanco") - Number(b.id === "en-blanco"),
+  );
   const [name, setName] = useState(project?.name ?? "");
   const [icon, setIcon] = useState(project?.icon ?? "");
   const [instructions, setInstructions] = useState(project?.instructions ?? "");
   const [templateId, setTemplateId] = useState(templates[0]?.id);
   const [saving, setSaving] = useState(false);
+
+  async function saveAsTemplate() {
+    if (!project) return;
+    try {
+      // Persist pending edits first so the template reflects what is on screen.
+      await api.updateProject(project.id, { name, icon: icon || "📁", instructions });
+      const template = await api.templateFromProject(project.id);
+      await refresh();
+      toast.success(`Plantilla “${template.name}” guardada`);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -69,16 +88,25 @@ export function ProjectDialog({ project, onClose }: { project?: Project; onClose
           </div>
 
           {project ? (
-            <div className="grid gap-2">
-              <Label htmlFor="instructions">Instrucciones del proyecto</Label>
-              <Textarea
-                id="instructions"
-                rows={12}
-                className="max-h-[50vh] font-mono text-sm"
-                value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
-              />
-            </div>
+            <Tabs defaultValue="instructions">
+              <TabsList>
+                <TabsTrigger value="instructions">Instrucciones</TabsTrigger>
+                <TabsTrigger value="knowledge">Conocimiento</TabsTrigger>
+              </TabsList>
+              <TabsContent value="instructions" className="grid gap-2 pt-2">
+                <Label htmlFor="instructions">Instrucciones del proyecto</Label>
+                <Textarea
+                  id="instructions"
+                  rows={12}
+                  className="max-h-[50vh] font-mono text-sm"
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                />
+              </TabsContent>
+              <TabsContent value="knowledge" className="pt-2">
+                <KnowledgePanel projectId={project.id} />
+              </TabsContent>
+            </Tabs>
           ) : (
             <div className="grid gap-2">
               <Label>Tipo de proyecto</Label>
@@ -105,6 +133,11 @@ export function ProjectDialog({ project, onClose }: { project?: Project; onClose
           )}
 
           <DialogFooter>
+            {project && (
+              <Button type="button" variant="outline" className="sm:mr-auto" onClick={saveAsTemplate}>
+                Guardar como plantilla
+              </Button>
+            )}
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
             </Button>

@@ -38,6 +38,18 @@ export interface Template {
   builtIn: boolean;
 }
 
+export interface KnowledgeFile {
+  id: string;
+  name: string;
+  mediaType: string;
+  size: number;
+  createdAt: number;
+  /** Length of the extracted text that is injected into the system prompt. */
+  chars: number;
+}
+
+export type TemplateInput = Pick<Template, "name" | "icon" | "description" | "instructions">;
+
 export interface Settings {
   defaultEngine: Engine;
   defaultModel: ModelAlias;
@@ -82,6 +94,23 @@ export const api = {
   updateProject: (id: string, body: Partial<Pick<Project, "name" | "icon" | "instructions">>) =>
     request<Project>(`/projects/${id}`, json("PATCH", body)),
   deleteProject: (id: string) => request(`/projects/${id}`, { method: "DELETE" }),
+
+  knowledge: (projectId: string) => request<{ limit: number; files: KnowledgeFile[] }>(`/knowledge?projectId=${projectId}`),
+  uploadKnowledge(projectId: string, file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("projectId", projectId);
+    return request<KnowledgeFile & { warning?: string }>("/knowledge", { method: "POST", body: form });
+  },
+  deleteKnowledge: (id: string) => request(`/knowledge/${id}`, { method: "DELETE" }),
+
+  createTemplate: (body: Partial<TemplateInput> & Pick<TemplateInput, "name">) =>
+    request<Template>("/templates", json("POST", body)),
+  updateTemplate: (id: string, body: Partial<TemplateInput>) =>
+    request<Template>(`/templates/${id}`, json("PATCH", body)),
+  deleteTemplate: (id: string) => request(`/templates/${id}`, { method: "DELETE" }),
+  templateFromProject: (projectId: string) =>
+    request<Template>(`/templates/from-project/${projectId}`, { method: "POST" }),
 
   createThread: (body: { projectId?: string | null }) => request<Thread>("/threads", json("POST", body)),
   updateThread: (id: string, body: Partial<Pick<Thread, "title" | "model" | "engine" | "projectId">>) =>

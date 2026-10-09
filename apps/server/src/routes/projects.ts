@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { nanoid } from "nanoid";
@@ -40,6 +41,10 @@ projectRoutes.patch("/:id", async (c) => {
 });
 
 projectRoutes.delete("/:id", async (c) => {
-  await db.delete(schema.projects).where(eq(schema.projects.id, c.req.param("id")));
+  const id = c.req.param("id");
+  // The DB cascade removes the file rows but not the blobs on disk.
+  const files = await db.query.files.findMany({ where: eq(schema.files.projectId, id) });
+  await db.delete(schema.projects).where(eq(schema.projects.id, id));
+  await Promise.all(files.map((f) => rm(f.path, { force: true })));
   return c.json({ ok: true });
 });
