@@ -8,9 +8,6 @@ import { isTextLike, saveUpload } from "../files.ts";
 
 export const knowledgeRoutes = new Hono();
 
-/** A PDF with fewer characters than this is most likely a scan without a text layer. */
-const MIN_PDF_CHARS = 50;
-
 const extensionTypes: Record<string, string> = {
   ".md": "text/markdown",
   ".markdown": "text/markdown",
@@ -64,10 +61,10 @@ knowledgeRoutes.post("/", async (c) => {
   }
 
   const saved = await saveUpload(new File([await file.arrayBuffer()], file.name, { type: mediaType }), projectId);
-  const chars = saved.extractedText?.trim().length ?? 0;
-  const warning =
-    mediaType === "application/pdf" && chars < MIN_PDF_CHARS
-      ? "Este PDF casi no tiene texto extraíble (¿es un escaneo?). Claude no podrá leerlo como conocimiento."
+  const warning = saved.ocrError
+    ? `No se pudo leer el PDF escaneado (OCR): ${saved.ocrError}`
+    : mediaType === "application/pdf" && !saved.extractedText?.trim()
+      ? "Este PDF no tiene texto extraíble. Claude no podrá leerlo como conocimiento."
       : undefined;
   return c.json({
     id: saved.id,

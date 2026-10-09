@@ -11,7 +11,13 @@ fileRoutes.post("/", async (c) => {
   if (!(file instanceof File)) throw new Error("Falta el archivo");
   const projectId = form.get("projectId");
   const saved = await saveUpload(file, typeof projectId === "string" ? projectId : null);
-  return c.json({ id: saved.id, name: saved.name, mediaType: saved.mediaType, url: `/api/files/${saved.id}` });
+  return c.json({
+    id: saved.id,
+    name: saved.name,
+    mediaType: saved.mediaType,
+    url: `/api/files/${saved.id}`,
+    warning: saved.ocrError ? `No se pudo leer el PDF escaneado (OCR): ${saved.ocrError}` : undefined,
+  });
 });
 
 fileRoutes.get("/:id", async (c) => {

@@ -52,7 +52,8 @@ CLI de Claude no corre en iOS. Una sola UI web sirve a los tres dispositivos.
 
 - **CLI** (`ai-sdk-provider-claude-code`): usa el `claude` autenticado de la Mac.
   Herramientas deshabilitadas (modo "solo conversar"). Limitación: el Agent SDK no
-  acepta PDFs inline → el servidor extrae el texto del PDF y lo envía como texto.
+  acepta PDFs inline → el servidor extrae el texto del PDF y lo envía como texto. Las
+  páginas escaneadas (sin texto) se transcriben con OCR vía visión de Claude (Haiku) al subir.
   Imágenes sí se envían nativamente.
 - **API** (`@ai-sdk/anthropic`): API key guardada localmente. PDFs e imágenes nativos.
 
@@ -85,6 +86,7 @@ settings       key, value   (anthropicApiKey, defaultEngine, defaultModel, theme
 - [x] Sidebar: proyectos con sus hilos + hilos sueltos; crear/renombrar/borrar
 - [x] Proyecto con instrucciones (system prompt) y plantillas integradas
 - [x] Adjuntos: imágenes, PDF (texto extraído en CLI), texto/markdown
+- [x] OCR de PDFs escaneados con la visión de Claude (adjuntos y conocimiento; máx. 40 páginas por PDF)
 - [x] Electron que arranca el servidor y abre la ventana
 - [x] Servidor accesible en la red (0.0.0.0) para iPad/iPhone
 

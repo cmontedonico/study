@@ -1,37 +1,9 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, generateText, streamText, type UIMessage } from "ai";
-import { claudeCode } from "ai-sdk-provider-claude-code";
 import { and, asc, eq } from "drizzle-orm";
-import { mkdirSync } from "node:fs";
 import { nanoid } from "nanoid";
-import { join } from "node:path";
 import { db, reindexThread, schema } from "./db.ts";
 import { asDocumentText, getFile, readAsDataUrl } from "./files.ts";
-import { apiModelIds, isModelAlias } from "./models.ts";
-import { dataDir } from "./paths.ts";
-import { getSetting } from "./settings.ts";
-
-type Engine = "cli" | "api";
-
-/** Empty working dir so the CLI never picks up CLAUDE.md or files from elsewhere. */
-const cliCwd = join(dataDir, "cli-sandbox");
-mkdirSync(cliCwd, { recursive: true });
-
-function resolveModel(engine: Engine, alias: string) {
-  const model = isModelAlias(alias) ? alias : "sonnet";
-  if (engine === "cli") {
-    return claudeCode(model, {
-      cwd: cliCwd,
-      tools: [], // v1: chat only, no file or shell tools
-      maxTurns: 1,
-      persistSession: false,
-      sdkOptions: { strictMcpConfig: true }, // ignore the user's MCP servers / claude.ai connectors
-    });
-  }
-  const apiKey = getSetting("anthropicApiKey");
-  if (!apiKey) throw new Error("Falta la API key de Anthropic (Ajustes).");
-  return createAnthropic({ apiKey })(apiModelIds[model]);
-}
+import { resolveModel, type Engine } from "./model.ts";
 
 /**
  * Turns `/api/files/:id` references into something the model can read.

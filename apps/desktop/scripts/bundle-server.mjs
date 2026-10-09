@@ -1,5 +1,5 @@
 // Bundles apps/server into one ESM file for the packaged app.
-// better-sqlite3 (native addon) and the Agent SDK (resolves its per-platform native
+// better-sqlite3 and @napi-rs/canvas (native addons) and the Agent SDK (resolves its per-platform native
 // binary relative to its own files) stay external and ship as real node_modules.
 import { build } from "esbuild";
 import { readFileSync } from "node:fs";
@@ -38,7 +38,7 @@ await build({
   platform: "node",
   format: "esm",
   target: "node24",
-  external: ["better-sqlite3", "@anthropic-ai/claude-agent-sdk"],
+  external: ["better-sqlite3", "@napi-rs/canvas", "@anthropic-ai/claude-agent-sdk"],
   // Some bundled CJS deps call require() on Node builtins.
   banner: { js: 'import { createRequire as __cr } from "node:module"; const require = __cr(import.meta.url);' },
   logLevel: "info",
