@@ -128,3 +128,58 @@
     @apply font-sans;
     }
 }
+
+/* ---- Mobile / touch polish (iPhone, iPad). Unlayered on purpose: it must win over utility classes. ---- */
+@media (pointer: coarse) {
+  /* iOS Safari zooms the page when a focused field has a font-size below 16px. */
+  textarea,
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  select {
+    font-size: 16px;
+  }
+
+  /* Touch targets of at least 40px. */
+  [data-slot="button"],
+  [data-slot="select-trigger"],
+  button[data-slot="tooltip-trigger"],
+  [data-sidebar="trigger"],
+  [data-sidebar="menu-button"],
+  [data-sidebar="menu-sub-button"] {
+    min-height: 40px;
+  }
+  [data-sidebar="menu-action"],
+  [data-sidebar="group-action"] {
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+  }
+  [data-slot="button"][class*="size-"],
+  [data-slot="button"][data-size^="icon"],
+  button[data-slot="tooltip-trigger"][class*="size-"],
+  [data-sidebar="trigger"] {
+    min-width: 40px;
+  }
+
+  /* iOS keeps the layout viewport tall when the keyboard opens: lib/viewport.ts feeds the real height. */
+  .h-dvh {
+    height: var(--app-height, 100dvh);
+  }
+}
+
+/* Landscape on notched iPhones: keep content out of the sensor housing. */
+body {
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+}
+
+/* No hover on touch: anything revealed with `opacity-0 group-hover:opacity-100` must stay visible. */
+@media (hover: none) {
+  .opacity-0[class*="group-hover:opacity-100"],
+  .opacity-0[class*="group-focus-within:opacity-100"] {
+    opacity: 1;
+  }
+  /* Sidebar row actions are `md:opacity-0` until hovered: iPad is >= md but has no hover. */
+  [data-sidebar="menu-action"] {
+    opacity: 1;
+  }
+}

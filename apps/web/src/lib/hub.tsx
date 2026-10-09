@@ -1,9 +1,10 @@
 import { createContext, use, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { toast } from "sonner";
 import { api, type HubState } from "./api";
 
 interface Hub {
   state: HubState | null;
+  /** Set while `/api/state` is failing (server down, Tailscale off, bad token); cleared on recovery. */
+  connectionError: string | null;
   refresh: () => Promise<void>;
   threadId: string | null;
   openThread: (id: string | null) => void;
@@ -22,6 +23,7 @@ const readThreadId = () => window.location.hash.match(/^#\/t\/(.+)$/)?.[1] ?? nu
 
 export function HubProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<HubState | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const threadId = useSyncExternalStore(subscribeHash, readThreadId);
 
   const followUp = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -47,14 +49,29 @@ export function HubProvider({ children }: { children: ReactNode }) {
         };
         look([4000, 6000]);
       }
+      setConnectionError(null);
     } catch (error) {
-      toast.error(`No se pudo conectar con el servidor: ${(error as Error).message}`);
+      setConnectionError((error as Error).message);
     }
   }, []);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // While unreachable keep retrying, and retry right away when the app comes back to the foreground.
+  useEffect(() => {
+    if (!connectionError) return;
+    const timer = window.setInterval(() => void refresh(), 5000);
+    const retry = () => void refresh();
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", retry);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", retry);
+    };
+  }, [connectionError, refresh]);
 
   const openThread = useCallback((id: string | null) => {
     window.location.hash = id ? `/t/${id}` : "";
@@ -69,7 +86,7 @@ export function HubProvider({ children }: { children: ReactNode }) {
     [refresh, openThread],
   );
 
-  return <HubContext value={{ state, refresh, threadId, openThread, newThread }}>{children}</HubContext>;
+  return <HubContext value={{ state, connectionError, refresh, threadId, openThread, newThread }}>{children}</HubContext>;
 }
 
 export function useHub() {

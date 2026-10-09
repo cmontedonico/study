@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, engines, models, type Engine, type ModelAlias } from "@/lib/api";
 import { useHub } from "@/lib/hub";
+import { ConnectDevice } from "./connect-device";
 
 export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { state, refresh } = useHub();
@@ -40,7 +41,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajustes</DialogTitle>
           <DialogDescription>Valores por defecto para los chats nuevos.</DialogDescription>
@@ -100,6 +101,8 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               Solo necesaria para el motor "API key". El motor CLI usa tu sesión de <code>claude</code>.
             </p>
           </div>
+
+          <ConnectDevice />
         </div>
 
         <DialogFooter>

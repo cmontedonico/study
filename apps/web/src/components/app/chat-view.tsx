@@ -82,7 +82,7 @@ function ChatHeader({ thread }: { thread: Thread }) {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 pt-[env(safe-area-inset-top)]">
+    <header className="flex h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center gap-2 border-b px-3 pt-[env(safe-area-inset-top)]">
       <SidebarTrigger />
       <div className="min-w-0 flex-1">
         {project && (

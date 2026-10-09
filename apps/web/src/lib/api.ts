@@ -63,6 +63,10 @@ export interface HubState {
   settings: Settings;
 }
 
+export interface AccessInfo {
+  urls: { kind: "tailscale" | "lan"; label: string; url: string }[];
+}
+
 export const models: { id: ModelAlias; label: string }[] = [
   { id: "opus", label: "Opus" },
   { id: "sonnet", label: "Sonnet" },
@@ -125,6 +129,10 @@ export const api = {
 
   updateSettings: (body: Partial<Omit<Settings, "hasApiKey"> & { anthropicApiKey: string | null }>) =>
     request<Settings>("/settings", json("PUT", body)),
+
+  /** Loopback only: connection URLs (with token) for other devices. */
+  access: () => request<AccessInfo>("/access"),
+  regenerateAccessToken: () => request<AccessInfo>("/access/regenerate", { method: "POST" }),
 
   /** Uploads a file picked in the prompt input and returns a part that references it. */
   async upload(part: FileUIPart, projectId?: string): Promise<FileUIPart> {
