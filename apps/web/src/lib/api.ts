@@ -17,6 +17,7 @@ export interface Thread {
   title: string;
   model: ModelAlias;
   engine: Engine;
+  parentThreadId: string | null;
   updatedAt: number;
 }
 
@@ -78,6 +79,8 @@ export const api = {
   updateThread: (id: string, body: Partial<Pick<Thread, "title" | "model" | "engine" | "projectId">>) =>
     request<Thread>(`/threads/${id}`, json("PATCH", body)),
   deleteThread: (id: string) => request(`/threads/${id}`, { method: "DELETE" }),
+  forkThread: (id: string, messageId: string) =>
+    request<Thread>(`/threads/${id}/fork`, json("POST", { messageId })),
   messages: (threadId: string) => request<UIMessage[]>(`/threads/${threadId}/messages`),
 
   updateSettings: (body: Partial<Omit<Settings, "hasApiKey"> & { anthropicApiKey: string | null }>) =>
