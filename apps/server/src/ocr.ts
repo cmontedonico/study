@@ -55,7 +55,7 @@ export function parseTranscription(answer: string, expected: number[]): Map<numb
 const OCR_PROMPT = `Transcribe fielmente el texto de estas páginas escaneadas.
 Reglas estrictas:
 - Mantén el orden de lectura y el idioma original. No traduzcas, no resumas, no corrijas.
-- Usa Markdown para títulos, listas y tablas. Escribe las fórmulas matemáticas en LaTeX con $$...$$ (o $...$ en línea).
+- Usa Markdown para títulos, listas y tablas. Escribe las fórmulas matemáticas en LaTeX siempre con $$...$$, también en línea; un solo $ únicamente para importes de dinero tal como aparecen en el documento.
 - Marca lo que no se pueda leer como [ilegible].
 - Las figuras sin texto se describen en una sola línea entre corchetes, por ejemplo [Figura: gráfico de barras].
 - No añadas comentarios ni explicaciones.
