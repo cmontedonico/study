@@ -117,7 +117,12 @@ Multiusuario/login, herramientas de agente sobre carpetas, otros proveedores
 2. **Tutor paso a paso** — plan de aprendizaje por módulos, explicaciones con ejemplos y quiz al final.
 3. **Analista de negocio** — marcos (DAFO, 5 fuerzas, unit economics), supuestos explícitos, recomendaciones accionables.
 4. **Investigador** — separa hechos de inferencias, cita las fuentes adjuntas, señala lagunas.
-5. **En blanco** — sin instrucciones.
+5. **Tutor de idiomas** — conversación guiada por nivel MCER, corrección en tabla, vocabulario y repasos espaciados.
+6. **Tutor de matemáticas** — guía paso a paso sin regalar la respuesta, localiza el error, verifica resultados; fórmulas en LaTeX.
+7. **Tutor de ajedrez** — notación algebraica, FEN/PGN/capturas, aperturas, táctica, finales y análisis de partidas; avisa de que no tiene motor.
+8. **Tutor de guitarra acústica** — lectura de música, estudios por nivel (Carulli, Sor, Brouwer, Villa-Lobos…), plan semanal de práctica y teoría aplicada.
+9. **Tutor e investigador de IA** — tendencias sin humo (avisa de su fecha de corte) y ayuda para diseñar y construir soluciones de IA.
+10. **En blanco** — sin instrucciones.
 
 ## Plantillas de referencia en el mercado
 

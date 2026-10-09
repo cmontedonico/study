@@ -6,6 +6,7 @@ import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { ComponentProps } from "react";
 import { Streamdown } from "streamdown";
+import "katex/dist/katex.min.css";
 
 // Heavy markdown stack (shiki, katex, mermaid, cjk): kept in its own lazily loaded chunk, see message.tsx.
 const plugins = { cjk, code, math, mermaid };
