@@ -1,4 +1,5 @@
 import type { FileUIPart, UIMessage } from "ai";
+import { toast } from "sonner";
 
 export type Engine = "cli" | "api";
 export type ModelAlias = "opus" | "sonnet" | "haiku";
@@ -140,10 +141,11 @@ export const api = {
     const form = new FormData();
     form.append("file", new File([blob], part.filename ?? "archivo", { type: part.mediaType }));
     if (projectId) form.append("projectId", projectId);
-    const saved = await request<{ url: string; name: string; mediaType: string }>("/files", {
+    const saved = await request<{ url: string; name: string; mediaType: string; warning?: string }>("/files", {
       method: "POST",
       body: form,
     });
+    if (saved.warning) toast.warning(`${saved.name}: ${saved.warning}`);
     return { type: "file", url: saved.url, filename: saved.name, mediaType: saved.mediaType };
   },
 };

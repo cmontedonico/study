@@ -5,6 +5,7 @@ import {
   DownloadIcon,
   FileTextIcon,
   GitBranchIcon,
+  LoaderCircleIcon,
   PaperclipIcon,
   PencilIcon,
   RefreshCcwIcon,
@@ -136,6 +137,8 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
   const { refresh, openThread } = useHub();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // Uploading a scanned PDF can take a while (server-side OCR): show it and block double submits.
+  const [uploading, setUploading] = useState(false);
   const { messages, sendMessage, regenerate, status, stop, error } = useChat({
     id: thread.id,
     messages: initialMessages,
@@ -148,9 +151,18 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
   }, [error]);
 
   async function submit({ text, files }: PromptInputMessage) {
-    if (!text.trim() && files.length === 0) return;
+    if ((!text.trim() && files.length === 0) || uploading) return;
+    let uploaded: FileUIPart[];
+    setUploading(true);
     try {
-      const uploaded = await Promise.all(files.map((f) => api.upload(f)));
+      uploaded = await Promise.all(files.map((f) => api.upload(f)));
+    } catch (e) {
+      toast.error((e as Error).message);
+      throw e; // keeps the text and attachments in the input so the user can retry
+    } finally {
+      setUploading(false);
+    }
+    try {
       await sendMessage({ text, files: uploaded });
     } catch (e) {
       toast.error((e as Error).message);
@@ -260,7 +272,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
       <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <PromptInput onSubmit={submit} accept={accept} multiple globalDrop maxFileSize={25 * 1024 * 1024}>
           <PromptInputHeader>
-            <PendingAttachments />
+            <PendingAttachments uploading={uploading} />
           </PromptInputHeader>
           <PromptInputBody>
             <PromptInputTextarea placeholder="Pregunta lo que quieras…" />
@@ -307,7 +319,7 @@ function AttachButton() {
   );
 }
 
-function PendingAttachments() {
+function PendingAttachments({ uploading }: { uploading: boolean }) {
   const { files, remove } = usePromptInputAttachments();
   if (files.length === 0) return null;
   return (
@@ -320,9 +332,16 @@ function PendingAttachments() {
             <FileTextIcon className="size-4" />
           )}
           <span className="max-w-40 truncate">{file.filename}</span>
-          <button type="button" onClick={() => remove(file.id)} className="hover:bg-background rounded p-0.5">
-            <XIcon className="size-3" />
-          </button>
+          {uploading ? (
+            <span className="text-muted-foreground flex items-center gap-1 pr-1" aria-live="polite">
+              <LoaderCircleIcon className="size-3 animate-spin" />
+              {file.mediaType === "application/pdf" ? "Leyendo PDF (OCR si es un escaneo)…" : "Subiendo…"}
+            </span>
+          ) : (
+            <button type="button" onClick={() => remove(file.id)} className="hover:bg-background rounded p-0.5">
+              <XIcon className="size-3" />
+            </button>
+          )}
         </div>
       ))}
     </div>

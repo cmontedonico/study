@@ -1,4 +1,4 @@
-import { FileText, Trash2, Upload } from "lucide-react";
+import { FileText, LoaderCircle, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,7 @@ export function KnowledgePanel({ projectId }: { projectId: string }) {
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
   const [charLimit, setCharLimit] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [processing, setProcessing] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [toDelete, setToDelete] = useState<KnowledgeFile | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -45,6 +46,7 @@ export function KnowledgePanel({ projectId }: { projectId: string }) {
     setUploading(true);
     try {
       for (const file of Array.from(list)) {
+        setProcessing(file.name);
         try {
           const saved = await api.uploadKnowledge(projectId, file);
           if (saved.warning) toast.warning(`${file.name}: ${saved.warning}`);
@@ -54,6 +56,7 @@ export function KnowledgePanel({ projectId }: { projectId: string }) {
       }
     } finally {
       setUploading(false);
+      setProcessing(null);
       await load();
     }
   }
@@ -110,8 +113,21 @@ export function KnowledgePanel({ projectId }: { projectId: string }) {
         />
       </div>
 
-      {files.length > 0 && (
+      {(files.length > 0 || processing) && (
         <ul className="max-h-[32vh] divide-y overflow-y-auto rounded-lg border">
+          {processing && (
+            <li className="flex items-center gap-3 px-3 py-2" aria-live="polite">
+              <LoaderCircle className="text-muted-foreground size-4 shrink-0 animate-spin" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm">{processing}</span>
+                <span className="text-muted-foreground text-xs">
+                  {/\.pdf$/i.test(processing)
+                    ? "Leyendo PDF… si es un escaneo se usa OCR y puede tardar un minuto"
+                    : "Procesando…"}
+                </span>
+              </span>
+            </li>
+          )}
           {files.map((file) => (
             <li key={file.id} className="flex items-center gap-3 px-3 py-2">
               <FileText className="text-muted-foreground size-4 shrink-0" />
