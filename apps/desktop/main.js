@@ -106,24 +106,45 @@ function showWindow() {
   });
 }
 
-// --- microphone (dictation) ---
-// Only audio capture, only for the app's own page; everything else stays denied.
-function isOwnAudioRequest(permission, origin, details) {
-  if (permission !== "media") return false;
-  if (details?.mediaTypes && details.mediaTypes.some((t) => t !== "audio")) return false;
-  return typeof origin === "string" && origin.startsWith(url);
+// --- permissions ---
+// Foreign origins get nothing. The app's own origin keeps Electron's default (allow: clipboard, fullscreen...),
+// except `media`, which is limited to audio-only capture (dictation).
+const appOrigin = new URL(url).origin;
+
+function originOf(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "";
+  }
+}
+
+function isAudioOnly(types) {
+  return !Array.isArray(types) || (types.length > 0 && types.every((t) => t === "audio"));
+}
+
+/** Pure decision, no macOS prompt: is this request allowed from the web side? */
+function allowPermission(permission, origin, details) {
+  if (originOf(origin) !== appOrigin) return false;
+  if (permission !== "media") return true;
+  // Check requests carry `mediaType`, requests carry `mediaTypes`.
+  if (details?.mediaType) return details.mediaType === "audio";
+  return isAudioOnly(details?.mediaTypes);
 }
 
 function setupPermissions() {
   const ses = session.defaultSession;
   ses.setPermissionCheckHandler((_wc, permission, origin, details) =>
-    isOwnAudioRequest(permission, origin, details),
+    allowPermission(permission, origin || details?.requestingUrl, details),
   );
-  ses.setPermissionRequestHandler((_wc, permission, callback, details) => {
-    const ok = isOwnAudioRequest(permission, details.requestingUrl, details);
-    // macOS shows its own system prompt (NSMicrophoneUsageDescription) on first use.
-    if (ok && process.platform === "darwin") void systemPreferences.askForMediaAccess("microphone");
-    callback(ok);
+  ses.setPermissionRequestHandler(async (_wc, permission, callback, details) => {
+    if (!allowPermission(permission, details.requestingUrl, details)) return callback(false);
+    if (permission !== "media" || process.platform !== "darwin") return callback(true);
+    // Chromium must not get the stream before macOS has granted access, or the first recording is silent.
+    const status = systemPreferences.getMediaAccessStatus("microphone");
+    if (status === "granted") return callback(true);
+    if (status === "not-determined") return callback(await systemPreferences.askForMediaAccess("microphone"));
+    callback(false); // denied / restricted: the UI explains how to enable it
   });
 }
 

@@ -93,7 +93,11 @@ export function DictationButton() {
       stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e) {
       const denied = e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError");
-      toast.error(denied ? "Permiso de micrófono denegado" : "No se pudo acceder al micrófono");
+      toast.error(
+        denied
+          ? "Permiso de micrófono denegado: actívalo en Ajustes del Sistema → Privacidad → Micrófono"
+          : "No se pudo acceder al micrófono",
+      );
       return;
     }
     const mimeType = MIME_CANDIDATES.find((t) => MediaRecorder.isTypeSupported(t));
