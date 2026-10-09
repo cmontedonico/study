@@ -44,6 +44,10 @@ export const threads = sqliteTable("thread", {
   engine: text("engine", { enum: ["cli", "api"] })
     .notNull()
     .default("cli"),
+  /** "manual" once the user renames the thread; auto titles never overwrite it. */
+  titleSource: text("title_source", { enum: ["auto", "manual"] })
+    .notNull()
+    .default("auto"),
   parentThreadId: text("parent_thread_id"),
   forkedFromMessageId: text("forked_from_message_id"),
   ...timestamps,

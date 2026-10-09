@@ -21,6 +21,14 @@ export interface Thread {
   updatedAt: number;
 }
 
+export interface SearchResult {
+  threadId: string;
+  title: string;
+  projectId: string | null;
+  /** Plain text with `<mark>…</mark>` around matches. */
+  snippet: string;
+}
+
 export interface Template {
   id: string;
   name: string;
@@ -82,6 +90,9 @@ export const api = {
   forkThread: (id: string, messageId: string) =>
     request<Thread>(`/threads/${id}/fork`, json("POST", { messageId })),
   messages: (threadId: string) => request<UIMessage[]>(`/threads/${threadId}/messages`),
+
+  search: (q: string, signal?: AbortSignal) =>
+    request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`, { signal }),
 
   updateSettings: (body: Partial<Omit<Settings, "hasApiKey"> & { anthropicApiKey: string | null }>) =>
     request<Settings>("/settings", json("PUT", body)),

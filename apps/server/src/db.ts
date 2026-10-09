@@ -42,6 +42,60 @@ sqlite.exec(`
   CREATE TABLE IF NOT EXISTS setting (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
 
+// Idempotent column additions (no migrations): add here when a table gains a column.
+const threadColumns = sqlite.prepare("PRAGMA table_info(thread)").all() as { name: string }[];
+if (!threadColumns.some((c) => c.name === "title_source")) {
+  sqlite.exec("ALTER TABLE thread ADD COLUMN title_source TEXT NOT NULL DEFAULT 'auto'");
+}
+
+// Full-text index: one row per text-bearing message plus one row (message_id = '') for the title.
+sqlite.exec(`
+  CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(
+    thread_id UNINDEXED, message_id UNINDEXED, text,
+    tokenize = 'unicode61 remove_diacritics 2'
+  );
+`);
+
+function textOf(parts: unknown): string {
+  if (!Array.isArray(parts)) return "";
+  return parts
+    .map((p) => (p && p.type === "text" && typeof p.text === "string" ? p.text : ""))
+    .filter(Boolean)
+    .join("\n");
+}
+
+const ftsDelete = sqlite.prepare("DELETE FROM message_fts WHERE thread_id = ?");
+const ftsInsert = sqlite.prepare("INSERT INTO message_fts (thread_id, message_id, text) VALUES (?, ?, ?)");
+const threadTitle = sqlite.prepare("SELECT title FROM thread WHERE id = ?");
+const threadMessages = sqlite.prepare("SELECT id, parts FROM message WHERE thread_id = ? ORDER BY position");
+
+/** Rebuilds a thread's rows in the search index (title + text parts of its messages). */
+export const reindexThread = sqlite.transaction((threadId: string) => {
+  ftsDelete.run(threadId);
+  const thread = threadTitle.get(threadId) as { title: string } | undefined;
+  if (!thread) return;
+  ftsInsert.run(threadId, "", thread.title);
+  for (const m of threadMessages.all(threadId) as { id: string; parts: string }[]) {
+    let text = "";
+    try {
+      text = textOf(JSON.parse(m.parts));
+    } catch {
+      // Malformed parts: nothing to index.
+    }
+    if (text) ftsInsert.run(threadId, m.id, text);
+  }
+});
+
+export function removeThreadFromIndex(threadId: string) {
+  ftsDelete.run(threadId);
+}
+
+// Backfill for databases created before search existed, and drop rows of threads deleted by cascade.
+sqlite.exec("DELETE FROM message_fts WHERE thread_id NOT IN (SELECT id FROM thread)");
+if (!sqlite.prepare("SELECT 1 FROM message_fts LIMIT 1").get()) {
+  for (const t of sqlite.prepare("SELECT id FROM thread").all() as { id: string }[]) reindexThread(t.id);
+}
+
 const upsertTemplate = sqlite.prepare(`
   INSERT INTO template (id, name, description, icon, instructions, built_in)
   VALUES (@id, @name, @description, @icon, @instructions, 1)
@@ -50,5 +104,6 @@ const upsertTemplate = sqlite.prepare(`
 `);
 for (const t of builtInTemplates) upsertTemplate.run(t);
 
+export { sqlite };
 export const db = drizzle(sqlite, { schema });
 export { schema };
