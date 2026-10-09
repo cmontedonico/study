@@ -89,22 +89,22 @@ settings       key, value   (anthropicApiKey, defaultEngine, defaultModel, theme
 - [x] Servidor accesible en la red (0.0.0.0) para iPad/iPhone
 
 ### Fase 2 — Chat completo
-- [ ] Editar mensaje y regenerar respuesta
-- [ ] Ramificar: nuevo hilo desde un mensaje
-- [ ] Búsqueda en todos los hilos (SQLite FTS5)
-- [ ] Exportar hilo a Markdown
-- [ ] Títulos automáticos de hilos (Haiku)
-- [ ] Arrastrar hilos sueltos a un proyecto
+- [x] Editar mensaje y regenerar respuesta
+- [x] Ramificar: nuevo hilo desde un mensaje
+- [x] Búsqueda en todos los hilos (SQLite FTS5)
+- [x] Exportar hilo a Markdown
+- [x] Títulos automáticos de hilos (Haiku)
+- [x] Arrastrar hilos sueltos a un proyecto
 
 ### Fase 3 — Proyectos con conocimiento
-- [ ] Archivos de proyecto (subida, lista, borrado)
-- [ ] Inyección del conocimiento en el system prompt (con prompt caching en motor API)
-- [ ] Editor de plantillas propias (crear, duplicar, borrar)
+- [x] Archivos de proyecto (subida, lista, borrado)
+- [x] Inyección del conocimiento en el system prompt (con prompt caching en motor API)
+- [x] Editor de plantillas propias (crear, duplicar, borrar)
 
 ### Fase 4 — Móvil y pulido
-- [ ] PWA: manifest, iconos, modo standalone, safe areas de iOS
-- [ ] Layout móvil: sidebar como drawer, input fijo abajo
-- [ ] Guía de Tailscale + token de acceso simple (aunque sea red privada)
+- [x] PWA: manifest, iconos, modo standalone, safe areas de iOS
+- [x] Layout móvil: sidebar como drawer, input fijo abajo
+- [x] Guía de Tailscale + token de acceso simple (aunque sea red privada)
 - [x] Empaquetado `.dmg` con electron-builder, autoarranque al iniciar sesión
 
 ### Fuera de alcance (por ahora)
