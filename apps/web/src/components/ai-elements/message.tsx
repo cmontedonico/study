@@ -12,15 +12,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
-import { math } from "@streamdown/math";
-import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
+import type { Streamdown } from "streamdown";
 import {
+  Suspense,
   createContext,
+  lazy,
   memo,
   useCallback,
   useContext,
@@ -28,7 +27,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Streamdown } from "streamdown";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -321,18 +319,22 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-const streamdownPlugins = { cjk, code, math, mermaid };
+const StreamdownRenderer = lazy(() => import("./streamdown-renderer"));
 
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
-      className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        className
-      )}
-      plugins={streamdownPlugins}
-      {...props}
-    />
+  ({ className, children, ...props }: MessageResponseProps) => (
+    // Plain text until the markdown chunk arrives, so the first paint never waits on shiki/katex/mermaid.
+    <Suspense fallback={<div className={cn("size-full whitespace-pre-wrap", className)}>{children}</div>}>
+      <StreamdownRenderer
+        className={cn(
+          "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </StreamdownRenderer>
+    </Suspense>
   ),
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
