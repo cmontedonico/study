@@ -1,6 +1,7 @@
 import { MessageSquarePlus } from "lucide-react";
 import { useEffect } from "react";
 import { AppSidebar } from "@/components/app/app-sidebar";
+import { ConnectionBanner } from "@/components/app/connection-banner";
 import { ChatView } from "@/components/app/chat-view";
 import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -18,6 +19,7 @@ export default function App() {
             <Main />
           </SidebarInset>
         </SidebarProvider>
+        <ConnectionBanner />
         <Toaster position="top-center" />
       </TooltipProvider>
     </HubProvider>
@@ -36,7 +38,7 @@ function Main() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="flex h-14 items-center px-3 pt-[env(safe-area-inset-top)]">
+      <header className="flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center px-3 pt-[env(safe-area-inset-top)]">
         <SidebarTrigger />
       </header>
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
