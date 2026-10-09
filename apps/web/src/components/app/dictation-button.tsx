@@ -11,7 +11,7 @@ const MAX_SECONDS = 15 * 60;
 const MIME_CANDIDATES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
 
 export const INSECURE_MESSAGE =
-  "El dictado necesita HTTPS: usa `tailscale serve` (ver README) o el dictado del teclado.";
+  "El dictado necesita HTTPS: usa «tailscale serve» (ver README) o el dictado del teclado.";
 
 /** getUserMedia only exists on https:// and localhost. */
 export function canRecord() {

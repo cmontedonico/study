@@ -86,6 +86,17 @@ function loadModel(): Promise<WhisperPipeline> {
       fileProgress.clear();
       transformers ??= await import("@huggingface/transformers");
       transformers.env.cacheDir = modelsDir;
+      // Electron's utility process exposes a web `caches` global, which transformers.js would prefer over the disk.
+      transformers.env.useBrowserCache = false;
+      transformers.env.useFSCache = true;
+      // In Electron's utility process fetch() returns a Response that fails `instanceof Response`, so
+      // transformers.js would skip writing the download to disk. Re-wrap it.
+      transformers.env.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+        const res = await fetch(input, init);
+        if (res instanceof Response) return res;
+        const foreign = res as { body: BodyInit | null; status: number; statusText: string; headers: HeadersInit };
+        return new Response(foreign.body, { status: foreign.status, statusText: foreign.statusText, headers: foreign.headers });
+      };
       const asr = await transformers.pipeline("automatic-speech-recognition", MODEL_ID, {
         dtype: MODEL_DTYPE,
         device: "cpu",
@@ -101,6 +112,7 @@ function loadModel(): Promise<WhisperPipeline> {
     } catch (error) {
       phase = "error";
       lastError = error instanceof Error ? error.message : String(error);
+      console.warn("[transcribe] could not load the model:", error);
       loading = undefined; // allow a retry on the next request
       throw error;
     }

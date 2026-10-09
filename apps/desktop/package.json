@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.283",
+    "@huggingface/transformers": "^4.3.1",
     "@napi-rs/canvas": "^1.0.10",
     "better-sqlite3": "^13.0.3"
   },
@@ -33,7 +34,10 @@
       "main.js",
       "assets/**",
       "server-dist/**",
-      "package.json"
+      "package.json",
+      "!**/node_modules/onnxruntime-web/**",
+      "!**/node_modules/onnxruntime-node/bin/napi-v6/linux/**",
+      "!**/node_modules/onnxruntime-node/bin/napi-v6/win32/**"
     ],
     "extraResources": [
       {
@@ -53,7 +57,10 @@
       ],
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
-      "identity": null
+      "identity": null,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "StudyLab usa el micrófono para dictar mensajes. El audio se transcribe en tu propio equipo."
+      }
     },
     "dmg": {
       "title": "StudyLab"

@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, dialog, Menu, nativeImage, screen, shell, Tray, utilityProcess } from "electron";
+import { app, BrowserWindow, dialog, Menu, nativeImage, screen, session, shell, systemPreferences, Tray, utilityProcess } from "electron";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT ?? "4317";
@@ -106,6 +106,27 @@ function showWindow() {
   });
 }
 
+// --- microphone (dictation) ---
+// Only audio capture, only for the app's own page; everything else stays denied.
+function isOwnAudioRequest(permission, origin, details) {
+  if (permission !== "media") return false;
+  if (details?.mediaTypes && details.mediaTypes.some((t) => t !== "audio")) return false;
+  return typeof origin === "string" && origin.startsWith(url);
+}
+
+function setupPermissions() {
+  const ses = session.defaultSession;
+  ses.setPermissionCheckHandler((_wc, permission, origin, details) =>
+    isOwnAudioRequest(permission, origin, details),
+  );
+  ses.setPermissionRequestHandler((_wc, permission, callback, details) => {
+    const ok = isOwnAudioRequest(permission, details.requestingUrl, details);
+    // macOS shows its own system prompt (NSMicrophoneUsageDescription) on first use.
+    if (ok && process.platform === "darwin") void systemPreferences.askForMediaAccess("microphone");
+    callback(ok);
+  });
+}
+
 // --- login item + menus ---
 const loginItem = () => ({
   label: "Iniciar al abrir sesión",
@@ -159,6 +180,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on("second-instance", () => showWindow());
   app.whenReady().then(async () => {
     buildMenu();
+    setupPermissions();
     if (existsSync(join(here, "assets/trayTemplate.png"))) buildTray();
     try {
       await ensureServer();
