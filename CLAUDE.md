@@ -1,4 +1,4 @@
-# Claude Hub — guía para agentes
+# StudyLab — guía para agentes (antes Claude Hub)
 
 App personal de chat con Claude por proyectos. Alcance y fases en `SPEC.md`.
 

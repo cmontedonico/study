@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   ChevronRight,
   FolderOutput,
   FolderPlus,
@@ -130,10 +131,10 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold">
-            C
+          <div className="flex size-7 items-center justify-center rounded-md bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
+            <BookOpen className="size-4" />
           </div>
-          <span className="font-semibold">Claude Hub</span>
+          <span className="font-semibold">StudyLab</span>
         </div>
         <SidebarMenu>
           <SidebarMenuItem>

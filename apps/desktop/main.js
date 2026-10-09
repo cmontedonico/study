@@ -10,7 +10,7 @@ import { app, BrowserWindow, dialog, Menu, nativeImage, screen, shell, Tray, uti
 const here = dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT ?? "4317";
 const url = `http://localhost:${port}`;
-app.setName("Claude Hub"); // userData dir otherwise derives from the package name (@hub/desktop)
+app.setName("StudyLab"); // userData dir otherwise derives from the package name (@hub/desktop)
 let server; // child we started (undefined when reusing an already-running server)
 let win;
 let tray;
@@ -49,7 +49,7 @@ async function ensureServer() {
   if (state === "ready") return; // already running (e.g. `pnpm start` or a launchd service)
   if (state === "no-ui") {
     throw new Error(
-      `El puerto ${port} lo ocupa otro servidor de Claude Hub sin la interfaz web ` +
+      `El puerto ${port} lo ocupa otro servidor de StudyLab sin la interfaz web ` +
         "(probablemente uno de desarrollo). Ciérralo y vuelve a abrir la app.",
     );
   }
@@ -121,15 +121,15 @@ function buildMenu() {
       {
         label: app.name,
         submenu: [
-          { role: "about", label: "Acerca de Claude Hub" },
+          { role: "about", label: "Acerca de StudyLab" },
           { type: "separator" },
           loginItem(),
           { type: "separator" },
-          { role: "hide", label: "Ocultar Claude Hub" },
+          { role: "hide", label: "Ocultar StudyLab" },
           { role: "hideOthers" },
           { role: "unhide" },
           { type: "separator" },
-          { role: "quit", label: "Salir de Claude Hub" },
+          { role: "quit", label: "Salir de StudyLab" },
         ],
       },
       { role: "editMenu", label: "Edición" },
@@ -143,10 +143,10 @@ function buildTray() {
   const icon = nativeImage.createFromPath(join(here, "assets/trayTemplate.png"));
   icon.setTemplateImage(true);
   tray = new Tray(icon);
-  tray.setToolTip("Claude Hub");
+  tray.setToolTip("StudyLab");
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Abrir Claude Hub", click: showWindow },
+      { label: "Abrir StudyLab", click: showWindow },
       { type: "separator" },
       { label: "Salir", click: () => app.quit() },
     ]),
@@ -163,7 +163,7 @@ if (!app.requestSingleInstanceLock()) {
     try {
       await ensureServer();
     } catch (err) {
-      dialog.showErrorBox("Claude Hub", String(err.message ?? err));
+      dialog.showErrorBox("StudyLab", String(err.message ?? err));
       app.quit();
       return;
     }

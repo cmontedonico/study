@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app shell load offline and fast. It never touches /api/*
 // (state, chat streaming), so data and streams always go straight to the network.
-const CACHE = "hub-shell-v1";
+const CACHE = "studylab-shell-v1";
 
 self.addEventListener("install", () => self.skipWaiting());
 

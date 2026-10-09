@@ -29,10 +29,10 @@ if (hasUi) {
   app.get("*", serveStatic({ root, path: "index.html" })); // SPA fallback
 } else {
   app.get("*", (c) =>
-    c.text(`Claude Hub: falta la interfaz web en ${webDist}. Ejecuta: pnpm --filter @hub/web build`, 503),
+    c.text(`StudyLab: falta la interfaz web en ${webDist}. Ejecuta: pnpm --filter @hub/web build`, 503),
   );
 }
 
 serve({ fetch: app.fetch, port, hostname: host }, (info) => {
-  console.log(`Claude Hub server → http://localhost:${info.port}`);
+  console.log(`StudyLab server → http://localhost:${info.port}`);
 });
