@@ -19,6 +19,8 @@ export async function saveUpload(file: File, projectId: string | null = null): P
   const bytes = new Uint8Array(await file.arrayBuffer());
   const path = join(filesDir, id + extname(file.name));
   await writeFile(path, bytes);
+  // unpdf transfers the buffer to a worker, which zeroes bytes.byteLength afterwards.
+  const size = bytes.byteLength;
 
   const mediaType = file.type || "application/octet-stream";
   let extractedText: string | null = null;
@@ -31,7 +33,7 @@ export async function saveUpload(file: File, projectId: string | null = null): P
 
   const [row] = await db
     .insert(schema.files)
-    .values({ id, projectId, name: file.name, mediaType, size: bytes.byteLength, path, extractedText })
+    .values({ id, projectId, name: file.name, mediaType, size, path, extractedText })
     .returning();
   return row!;
 }
