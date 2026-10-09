@@ -176,4 +176,8 @@ body {
   .opacity-0[class*="group-focus-within:opacity-100"] {
     opacity: 1;
   }
+  /* Sidebar row actions are `md:opacity-0` until hovered: iPad is >= md but has no hover. */
+  [data-sidebar="menu-action"] {
+    opacity: 1;
+  }
 }

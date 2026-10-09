@@ -1,6 +1,6 @@
 import { networkInterfaces } from "node:os";
 import { Hono } from "hono";
-import { generateToken, isLoopback, socketAddress, type AddressSource } from "../auth.ts";
+import { generateToken, isTrustedLocal, socketAddress, type AddressSource } from "../auth.ts";
 import { getSetting, setSetting } from "../settings.ts";
 
 export interface AccessUrl {
@@ -42,7 +42,7 @@ export function accessRoutes(address: AddressSource = socketAddress) {
 
   // Only the Mac itself may read or rotate the token, never a remote client holding it.
   routes.use("*", async (c, next) => {
-    if (!isLoopback(address(c))) return c.json({ error: "Solo disponible desde este equipo" }, 403);
+    if (!isTrustedLocal(c, address)) return c.json({ error: "Solo disponible desde este equipo" }, 403);
     return next();
   });
 

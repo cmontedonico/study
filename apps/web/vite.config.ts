@@ -26,6 +26,20 @@ export default defineConfig({
   },
   server: {
     host: true,
-    proxy: { "/api": "http://localhost:4317" },
+    proxy: {
+      "/api": {
+        target: "http://localhost:4317",
+        changeOrigin: true, // Host becomes localhost:4317, so the server still sees a local request
+        // The server rejects cross-origin writes: present the dev page's local Origin (:5173) as the target's own.
+        // Foreign origins are left untouched, so a random website still gets a 403 through the dev proxy.
+        configure: (proxy) =>
+          proxy.on("proxyReq", (req) => {
+            const origin = String(req.getHeader("origin") ?? "");
+            if (/^http:\/\/(localhost|127\.0\.0\.1|\[::1\]):\d+$/.test(origin)) {
+              req.setHeader("origin", "http://localhost:4317");
+            }
+          }),
+      },
+    },
   },
 });

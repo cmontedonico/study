@@ -26,7 +26,8 @@ El servidor de la Mac sirve también la web, así que el iPad/iPhone solo necesi
 5. **Añadir a pantalla de inicio**: Safari → Compartir → "Añadir a pantalla de inicio". Se abre como app a pantalla completa.
 
 Notas:
-- Por HTTP plano (`http://nombre-mac:4317`) iOS instala la app pero no registra el service worker (requiere HTTPS), así que no hay caché offline del shell. Para tenerla, publica el servidor con HTTPS de Tailscale: `tailscale serve --bg 4317` y usa `https://nombre-mac.<tailnet>.ts.net`. Ojo: ese proxy conecta desde localhost, por lo que el servidor lo trata como local y **no pide token**; úsalo solo si confías en tu tailnet.
+- Por HTTP plano (`http://nombre-mac:4317`) iOS instala la app pero no registra el service worker (requiere HTTPS), así que no hay caché offline del shell. Para tenerla, publica el servidor con HTTPS de Tailscale: `tailscale serve --bg 4317` y usa `https://nombre-mac.<tailnet>.ts.net`. Las peticiones que llegan por ese proxy (`tailscale serve`/`funnel`, o cualquier proxy inverso con cabeceras `X-Forwarded-For`, `Forwarded`, `X-Real-IP` o `Tailscale-User-*`) se tratan como remotas aunque vengan de localhost, así que también necesitan el token: abre el enlace con `?token=` igual que en el paso 4.
+- Seguridad: solo se confía en la propia Mac si la petición llega directa y con `Host` `localhost`/`127.0.0.1`/`[::1]`; las escrituras (`POST`/`PUT`/…) de `/api/*` con cabecera `Origin` de otro origen se rechazan (403), para que una web cualquiera no pueda llamar a `localhost:4317`.
 - Si el servidor no responde, la app muestra un aviso "Servidor no disponible" y reintenta sola.
 
 #### Mantener el servidor en marcha
