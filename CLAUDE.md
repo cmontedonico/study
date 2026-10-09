@@ -10,7 +10,7 @@ App personal de chat con Claude por proyectos. Alcance y fases en `SPEC.md`.
 - `apps/web` — Vite + React 19 + Tailwind v4 + shadcn (estilo `radix-nova`) + AI Elements (`src/components/ai-elements`).
   - Componentes de la app en `src/components/app/`. Cliente HTTP tipado en `src/lib/api.ts`. Estado global en `src/lib/hub.tsx`.
   - Añadir componentes shadcn: `pnpm dlx shadcn@latest add <name>` dentro de `apps/web`. No editar a mano `components/ui` salvo necesidad.
-- `apps/desktop` — Electron (JS plano, `main.js`), carga el servidor en `http://localhost:4317`.
+- `apps/desktop` — Electron (JS plano, `main.js`), carga el servidor en `http://localhost:4317`. `pnpm desktop:dist` genera el `.dmg` (servidor empaquetado con esbuild, ver README).
 
 ## Convenciones
 - TypeScript estricto, sin `any`. Código y nombres en inglés; textos de UI en español.
