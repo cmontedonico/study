@@ -23,6 +23,9 @@ export function downloadMarkdown(title: string, content: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = `${name}.md`;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // Safari/iOS can cancel the download if the URL is revoked immediately.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

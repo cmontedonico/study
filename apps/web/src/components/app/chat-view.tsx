@@ -185,7 +185,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
     }
   }
 
-  const lastAssistantId =messages.findLast((m) => m.role === "assistant")?.id;
+  const lastAssistantId = messages.findLast((m) => m.role === "assistant")?.id;
 
   return (
     <>
