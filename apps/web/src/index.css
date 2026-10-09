@@ -141,6 +141,7 @@
   /* Touch targets of at least 40px. */
   [data-slot="button"],
   [data-slot="select-trigger"],
+  button[data-slot="tooltip-trigger"],
   [data-sidebar="trigger"],
   [data-sidebar="menu-button"],
   [data-sidebar="menu-sub-button"] {
@@ -155,6 +156,7 @@
   }
   [data-slot="button"][class*="size-"],
   [data-slot="button"][data-size^="icon"],
+  button[data-slot="tooltip-trigger"][class*="size-"],
   [data-sidebar="trigger"] {
     min-width: 40px;
   }
