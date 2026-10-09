@@ -95,7 +95,7 @@ export const api = {
     request<Project>(`/projects/${id}`, json("PATCH", body)),
   deleteProject: (id: string) => request(`/projects/${id}`, { method: "DELETE" }),
 
-  knowledge: (projectId: string) => request<KnowledgeFile[]>(`/knowledge?projectId=${projectId}`),
+  knowledge: (projectId: string) => request<{ limit: number; files: KnowledgeFile[] }>(`/knowledge?projectId=${projectId}`),
   uploadKnowledge(projectId: string, file: File) {
     const form = new FormData();
     form.append("file", file);

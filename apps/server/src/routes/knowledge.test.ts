@@ -38,8 +38,12 @@ test("upload, list and delete a text file", async () => {
   const item = (await res.json()) as Item;
   assert.equal(item.chars, 29);
 
-  const list = (await (await api.request(`/knowledge?projectId=${project.id}`)).json()) as Item[];
-  assert.deepEqual(list.map((f) => f.name), ["notas.md"]);
+  const listed = (await (await api.request(`/knowledge?projectId=${project.id}`)).json()) as {
+    limit: number;
+    files: Item[];
+  };
+  assert.equal(listed.limit, KNOWLEDGE_CHAR_LIMIT);
+  assert.deepEqual(listed.files.map((f) => f.name), ["notas.md"]);
 
   const row = await db.query.files.findFirst({ where: eq(schema.files.id, item.id) });
   assert.ok(row && existsSync(row.path));
@@ -76,4 +80,20 @@ test("API engine marks the system prompt as cacheable, CLI keeps a string", () =
     content: "hola",
     providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
   });
+});
+
+test("deleting a project removes its knowledge files from disk", async () => {
+  const doomed = (await (
+    await api.request("/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Doomed" }),
+    })
+  ).json()) as { id: string };
+  const item = (await (await upload(new File(["adiós"], "x.txt"), doomed.id)).json()) as Item;
+  const row = await db.query.files.findFirst({ where: eq(schema.files.id, item.id) });
+  assert.ok(row && existsSync(row.path));
+  assert.equal((await api.request(`/projects/${doomed.id}`, { method: "DELETE" })).status, 200);
+  assert.equal(existsSync(row.path), false);
+  assert.equal(await db.query.files.findFirst({ where: eq(schema.files.id, item.id) }), undefined);
 });

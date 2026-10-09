@@ -2,6 +2,7 @@ import { rm } from "node:fs/promises";
 import { extname } from "node:path";
 import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { Hono } from "hono";
+import { KNOWLEDGE_CHAR_LIMIT } from "../chat.ts";
 import { db, schema } from "../db.ts";
 import { isTextLike, saveUpload } from "../files.ts";
 
@@ -33,8 +34,9 @@ knowledgeRoutes.get("/", async (c) => {
     where: eq(schema.files.projectId, projectId),
     orderBy: asc(schema.files.createdAt),
   });
-  return c.json(
-    rows.map((f) => ({
+  return c.json({
+    limit: KNOWLEDGE_CHAR_LIMIT,
+    files: rows.map((f) => ({
       id: f.id,
       name: f.name,
       mediaType: f.mediaType,
@@ -42,7 +44,7 @@ knowledgeRoutes.get("/", async (c) => {
       createdAt: f.createdAt,
       chars: f.extractedText?.length ?? 0,
     })),
-  );
+  });
 });
 
 knowledgeRoutes.post("/", async (c) => {

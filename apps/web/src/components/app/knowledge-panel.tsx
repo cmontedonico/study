@@ -15,15 +15,13 @@ import { Button } from "@/components/ui/button";
 import { api, type KnowledgeFile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-/** Keep in sync with KNOWLEDGE_CHAR_LIMIT in apps/server/src/chat.ts. */
-const CHAR_LIMIT = 400_000;
-
 const formatSize = (bytes: number) =>
   bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 /** Lists, uploads (button or drag & drop) and deletes the files a project uses as knowledge. */
 export function KnowledgePanel({ projectId }: { projectId: string }) {
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
+  const [charLimit, setCharLimit] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [toDelete, setToDelete] = useState<KnowledgeFile | null>(null);
@@ -31,7 +29,9 @@ export function KnowledgePanel({ projectId }: { projectId: string }) {
 
   const load = useCallback(async () => {
     try {
-      setFiles(await api.knowledge(projectId));
+      const res = await api.knowledge(projectId);
+      setFiles(res.files);
+      setCharLimit(res.limit);
     } catch (error) {
       toast.error((error as Error).message);
     }
@@ -70,7 +70,7 @@ export function KnowledgePanel({ projectId }: { projectId: string }) {
 
   const totalChars = files.reduce((sum, f) => sum + f.chars, 0);
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-  const usage = Math.min(100, (totalChars / CHAR_LIMIT) * 100);
+  const usage = Math.min(100, charLimit ? (totalChars / charLimit) * 100 : 0);
 
   return (
     <div className="grid gap-3">
@@ -142,8 +142,8 @@ export function KnowledgePanel({ projectId }: { projectId: string }) {
         </div>
         <p className="text-muted-foreground text-xs">
           {files.length} {files.length === 1 ? "archivo" : "archivos"} · {formatSize(totalSize)} ·{" "}
-          {totalChars.toLocaleString("es")} de {CHAR_LIMIT.toLocaleString("es")} caracteres usados
-          {totalChars > CHAR_LIMIT && ". El exceso se recortará al chatear."}
+          {totalChars.toLocaleString("es")} de {charLimit.toLocaleString("es")} caracteres usados
+          {totalChars > charLimit && ". El exceso se recortará al chatear."}
         </p>
       </div>
 
