@@ -22,6 +22,8 @@ export interface Thread {
   effort: EffortLevel | null;
   engine: Engine;
   parentThreadId: string | null;
+  /** Last Notion page this chat was exported to. */
+  notionUrl: string | null;
   updatedAt: number;
 }
 
@@ -74,7 +76,18 @@ export interface Settings {
   defaultEffort: EffortLevel | null;
   hasApiKey: boolean;
   notionConnected: boolean;
+  /** Destination page of the last Notion export. */
+  notionExportParent: { id: string; title: string } | null;
 }
+
+export interface NotionPage {
+  id: string;
+  title: string;
+  url: string;
+  path?: string;
+}
+
+export type NotionExportMode = "full" | "summary" | "both";
 
 export interface NotionStatus {
   connected: boolean;
@@ -200,9 +213,15 @@ export const api = {
   /** Loopback only: returns the Notion authorization URL to open in a browser. */
   notionConnect: () => request<{ url: string }>("/notion/connect", { method: "POST" }),
   notionDisconnect: () => request<NotionStatus>("/notion/disconnect", { method: "POST" }),
+  notionPages: (q: string, signal?: AbortSignal) =>
+    request<{ pages: NotionPage[] }>(`/notion/pages?q=${encodeURIComponent(q)}`, { signal }),
+  notionExport: (
+    threadId: string,
+    body: { parentId: string; parentTitle: string; mode: NotionExportMode; title: string },
+  ) => request<{ url: string }>(`/notion/export/${threadId}`, json("POST", body)),
   notionTest: () => request<{ ok: boolean; result: string }>("/notion/test", { method: "POST" }),
 
-  updateSettings: (body: Partial<Omit<Settings, "hasApiKey" | "notionConnected"> & { anthropicApiKey: string | null }>) =>
+  updateSettings: (body: Partial<Omit<Settings, "hasApiKey" | "notionConnected" | "notionExportParent"> & { anthropicApiKey: string | null }>) =>
     request<Settings>("/settings", json("PUT", body)),
 
   /** Loopback only: connection URLs (with token) for other devices. */

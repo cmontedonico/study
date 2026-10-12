@@ -57,6 +57,8 @@ export const threads = sqliteTable("thread", {
     .default("auto"),
   parentThreadId: text("parent_thread_id"),
   forkedFromMessageId: text("forked_from_message_id"),
+  /** Last Notion page this chat was exported to. */
+  notionUrl: text("notion_url"),
   ...timestamps,
   updatedAt: integer("updated_at", { mode: "number" })
     .notNull()

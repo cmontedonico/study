@@ -1,7 +1,13 @@
 import { auth } from "@modelcontextprotocol/sdk/client/auth.js";
+import { eq } from "drizzle-orm";
 import { Hono, type Context } from "hono";
+import { z } from "zod";
+import { db, schema } from "../db.ts";
+import { setSetting } from "../settings.ts";
 import { isTrustedLocal, socketAddress, type AddressSource } from "../auth.ts";
 import { callNotionTool, listNotionTools, resetNotionClient } from "../notion/client.ts";
+import { exportThreadToNotion, NotionExportError, type NotionCaller, type Summarizer } from "../notion/export.ts";
+import { buildSearchArgs, mapNotionError, parseSearchResults } from "../notion/markdown.ts";
 import {
   clearNotionConnection,
   getNotionAccount,
@@ -48,7 +54,13 @@ async function refreshAccount(): Promise<NotionAccount> {
   }
 }
 
-export function notionRoutes(address: AddressSource = socketAddress) {
+export interface NotionRouteDeps {
+  call?: NotionCaller;
+  summarize?: Summarizer;
+}
+
+export function notionRoutes(address: AddressSource = socketAddress, deps: NotionRouteDeps = {}) {
+  const call = deps.call ?? callNotionTool;
   const routes = new Hono();
 
   // The redirect URI is localhost, so only the Mac itself can start, finish or undo the connection.
@@ -115,6 +127,49 @@ export function notionRoutes(address: AddressSource = socketAddress) {
     const { text, isError } = await callNotionTool("notion-get-self");
     if (!isError) saveNotionAccount(parseAccount(text));
     return c.json({ ok: !isError, result: text.slice(0, 2000) });
+  });
+
+  // Pages the user can pick as the export destination.
+  routes.get("/pages", async (c) => {
+    const query = (c.req.query("q") ?? "").trim();
+    if (!query) return c.json({ pages: [] });
+    let result;
+    try {
+      result = await call("notion-search", buildSearchArgs(query));
+    } catch (err) {
+      return c.json({ error: mapNotionError((err as Error).message) }, 400);
+    }
+    if (result.isError) return c.json({ error: mapNotionError(result.text) }, 400);
+    return c.json({ pages: parseSearchResults(result.text) });
+  });
+
+  routes.post("/export/:threadId", async (c) => {
+    const body = z
+      .object({
+        parentId: z.string().min(1),
+        parentTitle: z.string().optional(),
+        mode: z.enum(["full", "summary", "both"]),
+        title: z.string().trim().min(1),
+      })
+      .parse(await c.req.json());
+    const threadId = c.req.param("threadId");
+    const thread = await db.query.threads.findFirst({ where: eq(schema.threads.id, threadId) });
+    if (!thread) return c.json({ error: "Hilo no encontrado" }, 404);
+    if (!deps.call && !isNotionConnected()) {
+      return c.json({ error: "Notion no está conectado. Conéctalo en Ajustes" }, 400);
+    }
+    try {
+      const { url } = await exportThreadToNotion({ ...body, threadId }, { call, summarize: deps.summarize });
+      db.update(schema.threads).set({ notionUrl: url }).where(eq(schema.threads.id, threadId)).run();
+      setSetting("notionExportParent", JSON.stringify({ id: body.parentId, title: body.parentTitle ?? "" }));
+      return c.json({ url });
+    } catch (err) {
+      if (err instanceof NotionExportError && err.url) {
+        // The page exists, only later parts are missing: keep the link so the user can find it.
+        db.update(schema.threads).set({ notionUrl: err.url }).where(eq(schema.threads.id, threadId)).run();
+      }
+      return c.json({ error: (err as Error).message }, 400);
+    }
   });
 
   return routes;

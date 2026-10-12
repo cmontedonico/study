@@ -67,6 +67,15 @@ if (!threadColumns.some((c) => c.name === "title_source")) {
   sqlite.exec("ALTER TABLE thread ADD COLUMN title_source TEXT NOT NULL DEFAULT 'auto'");
 }
 
+if (!threadColumns.some((c) => c.name === "notion_url")) {
+  try {
+    sqlite.exec("ALTER TABLE thread ADD COLUMN notion_url TEXT");
+  } catch (err) {
+    // Another process on the same data dir (e.g. the live app) may have added it a moment ago.
+    if (!/duplicate column/i.test((err as Error).message)) throw err;
+  }
+}
+
 // Full-text index: one row per text-bearing message plus one row (message_id = '') for the title.
 sqlite.exec(`
   CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(
