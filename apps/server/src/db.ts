@@ -60,6 +60,9 @@ sqlite.exec(`
 
 // Idempotent column additions (no migrations): add here when a table gains a column.
 const threadColumns = sqlite.prepare("PRAGMA table_info(thread)").all() as { name: string }[];
+if (!threadColumns.some((c) => c.name === "effort")) {
+  sqlite.exec("ALTER TABLE thread ADD COLUMN effort TEXT");
+}
 if (!threadColumns.some((c) => c.name === "title_source")) {
   sqlite.exec("ALTER TABLE thread ADD COLUMN title_source TEXT NOT NULL DEFAULT 'auto'");
 }

@@ -46,6 +46,8 @@ export const threads = sqliteTable("thread", {
   }),
   title: text("title").notNull().default("Nuevo chat"),
   model: text("model").notNull().default("sonnet"),
+  /** null = the model's own default effort. */
+  effort: text("effort", { enum: ["low", "medium", "high", "xhigh"] }),
   engine: text("engine", { enum: ["cli", "api"] })
     .notNull()
     .default("cli"),

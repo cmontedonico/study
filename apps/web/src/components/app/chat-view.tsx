@@ -40,8 +40,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { AudioAttachment, AudioChipStatus, AudioUploadsProvider, useAudioUploads } from "@/components/app/audio-uploads";
 import { DictationButton } from "@/components/app/dictation-button";
+import { ModelPicker } from "@/components/app/model-picker";
 import { isAudioFile } from "@/lib/audio";
-import { api, engines, models, type Engine, type ModelAlias, type Thread } from "@/lib/api";
+import { api, engines, type Engine, type Thread } from "@/lib/api";
 import { downloadMarkdown, threadToMarkdown } from "@/lib/export";
 import { useHub } from "@/lib/hub";
 import { UsageFooter } from "./usage-footer";
@@ -83,7 +84,7 @@ function ChatHeader({ thread }: { thread: Thread }) {
   const project = state?.projects.find((p) => p.id === thread.projectId);
   const parent = thread.parentThreadId ? state?.threads.find((t) => t.id === thread.parentThreadId) : undefined;
 
-  async function update(body: { model?: ModelAlias; engine?: Engine }) {
+  async function update(body: { engine?: Engine }) {
     await api.updateThread(thread.id, body);
     await refresh();
   }
@@ -128,18 +129,6 @@ function ChatHeader({ thread }: { thread: Thread }) {
           {engines.map((e) => (
             <SelectItem key={e.id} value={e.id}>
               {e.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select value={thread.model} onValueChange={(v) => void update({ model: v as ModelAlias })}>
-        <SelectTrigger size="sm">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {models.map((m) => (
-            <SelectItem key={m.id} value={m.id}>
-              {m.label}
             </SelectItem>
           ))}
         </SelectContent>
@@ -309,6 +298,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
             <PromptInputTools>
               <AttachButton />
               <DictationButton />
+              <ModelPicker thread={thread} />
             </PromptInputTools>
             <SubmitButton status={status} onStop={stop} />
           </PromptInputFooter>

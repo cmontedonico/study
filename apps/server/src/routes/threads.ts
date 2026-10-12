@@ -5,13 +5,13 @@ import { z } from "zod";
 import { db, reindexThread, removeThreadFromIndex, schema } from "../db.ts";
 import { aggregateUsage } from "../pricing.ts";
 import { publicSettings } from "../settings.ts";
-import { engine, model } from "./validators.ts";
+import { effort, engine, model } from "./validators.ts";
 
 export const threadRoutes = new Hono();
 
 threadRoutes.post("/", async (c) => {
   const body = z
-    .object({ projectId: z.string().nullable().optional(), model: model.optional(), engine: engine.optional() })
+    .object({ projectId: z.string().nullable().optional(), model: model.optional(), engine: engine.optional(), effort: effort.nullable().optional() })
     .parse(await c.req.json());
   const defaults = publicSettings();
   const [thread] = await db
@@ -21,6 +21,7 @@ threadRoutes.post("/", async (c) => {
       projectId: body.projectId ?? null,
       model: body.model ?? defaults.defaultModel,
       engine: body.engine ?? defaults.defaultEngine,
+      effort: body.effort === undefined ? defaults.defaultEffort : body.effort,
     })
     .returning();
   return c.json(thread);
@@ -28,7 +29,7 @@ threadRoutes.post("/", async (c) => {
 
 threadRoutes.patch("/:id", async (c) => {
   const body = z
-    .object({ title: z.string().min(1), model, engine, projectId: z.string().nullable() })
+    .object({ title: z.string().min(1), model, engine, effort: effort.nullable(), projectId: z.string().nullable() })
     .partial()
     .parse(await c.req.json());
   const [thread] = await db
@@ -98,6 +99,7 @@ threadRoutes.post("/:id/fork", async (c) => {
         projectId: parent.projectId,
         title: `${parent.title} (rama)`,
         model: parent.model,
+        effort: parent.effort,
         engine: parent.engine,
         parentThreadId: parent.id,
         forkedFromMessageId: messageId,
