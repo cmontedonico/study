@@ -133,6 +133,18 @@ export const api = {
   restoreHiddenTemplates: () => request<{ count: number }>("/templates/restore-hidden", { method: "POST" }),
   applyTemplateToProjects: (id: string) =>
     request<{ count: number }>(`/templates/${id}/apply-to-projects`, { method: "POST" }),
+  generateTemplate: (prompt: string) =>
+    request<TemplateInput>("/templates/generate", json("POST", { prompt })),
+  improveTemplate: (instructions: string, note?: string) =>
+    request<{ instructions: string }>("/templates/improve", json("POST", { instructions, request: note })),
+  importTemplates: (body: { templates: TemplateInput[] } | { markdown: string }) =>
+    request<{ count: number; templates: Template[] }>("/templates/import", json("POST", body)),
+  /** Plain text of an export endpoint (the server also sends it as an attachment). */
+  exportTemplates: async (id?: string) => {
+    const res = await fetch(`/api/templates/${id ? `${id}/` : ""}export`);
+    if (!res.ok) throw new Error("No se pudo exportar");
+    return res.text();
+  },
   templateFromProject: (projectId: string) =>
     request<Template>(`/templates/from-project/${projectId}`, { method: "POST" }),
 

@@ -15,17 +15,25 @@ export function threadToMarkdown(title: string, messages: UIMessage[], projectNa
   return lines.join("\n").trimEnd() + "\n";
 }
 
-/** Downloads text as a .md file, stripping characters that filesystems reject from the name. */
-export function downloadMarkdown(title: string, content: string) {
+/** Strips characters that filesystems reject from a file name. */
+export const safeFileName = (title: string, fallback: string) =>
   // eslint-disable-next-line no-control-regex
-  const name = title.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").trim() || "chat";
-  const url = URL.createObjectURL(new Blob([content], { type: "text/markdown;charset=utf-8" }));
+  title.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").trim() || fallback;
+
+/** Downloads text as a file via Blob + anchor (works in Safari and the iPad PWA). */
+export function downloadText(filename: string, content: string, type: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: `${type};charset=utf-8` }));
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${name}.md`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   // Safari/iOS can cancel the download if the URL is revoked immediately.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Downloads text as a .md file. */
+export function downloadMarkdown(title: string, content: string) {
+  downloadText(`${safeFileName(title, "chat")}.md`, content, "text/markdown");
 }
