@@ -19,5 +19,7 @@ stateRoutes.get("/state", async (c) => {
       .orderBy(desc(schema.templates.builtIn), asc(schema.templates.name)),
     db.select({ n: count() }).from(schema.templates).where(eq(schema.templates.hidden, true)),
   ]);
-  return c.json({ projects, threads, templates, hiddenTemplateCount: hidden[0]?.n ?? 0, settings: publicSettings() });
+  // The prompt snapshot can be long and the client never needs it.
+  const publicThreads = threads.map(({ templateInstructions: _omit, ...t }) => t);
+  return c.json({ projects, threads: publicThreads, templates, hiddenTemplateCount: hidden[0]?.n ?? 0, settings: publicSettings() });
 });

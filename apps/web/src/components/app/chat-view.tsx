@@ -109,6 +109,11 @@ function ChatHeader({ thread }: { thread: Thread }) {
           </div>
         )}
         <div className="truncate text-sm font-medium">{thread.title}</div>
+        {thread.templateName && (
+          <div className="text-muted-foreground truncate text-xs" title="Plantilla de este chat">
+            {thread.templateIcon} {thread.templateName}
+          </div>
+        )}
         {parent && (
           <button
             type="button"

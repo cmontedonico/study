@@ -102,7 +102,7 @@ function dragProps(thread: Thread) {
 }
 
 export function AppSidebar() {
-  const { state, newThread, refresh } = useHub();
+  const { state, pickNewChat, refresh } = useHub();
   const [projectDialog, setProjectDialog] = useState<{ project?: Project } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -138,7 +138,7 @@ export function AppSidebar() {
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => void newThread(null)}>
+            <SidebarMenuButton onClick={() => pickNewChat(null)}>
               <Plus />
               Nuevo chat
             </SidebarMenuButton>
@@ -246,7 +246,7 @@ function ProjectItem({
   onRename,
   onMove,
 }: { project: Project; threads: Thread[]; allProjects: Project[]; onEdit: () => void } & ThreadActions) {
-  const { refresh, newThread, threadId, openThread } = useHub();
+  const { refresh, pickNewChat, threadId, openThread } = useHub();
   const containsOpenThread = threads.some((t) => t.id === threadId);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [open, setOpen] = useState(containsOpenThread || threads.length > 0);
@@ -287,7 +287,7 @@ function ProjectItem({
             </SidebarMenuAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start">
-            <DropdownMenuItem onClick={() => void newThread(project.id)}>
+            <DropdownMenuItem onClick={() => pickNewChat(project.id)}>
               <Plus /> Nuevo chat en el proyecto
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onEdit}>
@@ -319,7 +319,7 @@ function ProjectItem({
             ))}
             <SidebarMenuSubItem>
               <SidebarMenuSubButton asChild className="text-muted-foreground">
-                <button type="button" className="w-full" onClick={() => void newThread(project.id)}>
+                <button type="button" className="w-full" onClick={() => pickNewChat(project.id)}>
                   <Plus /> Nuevo chat
                 </button>
               </SidebarMenuSubButton>

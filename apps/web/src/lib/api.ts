@@ -24,6 +24,10 @@ export interface Thread {
   parentThreadId: string | null;
   /** Last Notion page this chat was exported to. */
   notionUrl: string | null;
+  /** Template picked when the chat was created (snapshot; survives template edits and deletion). */
+  templateId: string | null;
+  templateName: string | null;
+  templateIcon: string | null;
   updatedAt: number;
 }
 
@@ -196,7 +200,7 @@ export const api = {
   templateFromProject: (projectId: string) =>
     request<Template>(`/templates/from-project/${projectId}`, { method: "POST" }),
 
-  createThread: (body: { projectId?: string | null }) => request<Thread>("/threads", json("POST", body)),
+  createThread: (body: { projectId?: string | null; templateId?: string | null }) => request<Thread>("/threads", json("POST", body)),
   updateThread: (id: string, body: Partial<Pick<Thread, "title" | "model" | "effort" | "engine" | "projectId">>) =>
     request<Thread>(`/threads/${id}`, json("PATCH", body)),
   deleteThread: (id: string) => request(`/threads/${id}`, { method: "DELETE" }),

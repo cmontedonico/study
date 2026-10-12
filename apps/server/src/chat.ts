@@ -42,17 +42,33 @@ async function resolveFileParts(messages: UIMessage[], engine: Engine): Promise<
 /** Max characters of project knowledge injected into the system prompt (~100k tokens). */
 export const KNOWLEDGE_CHAR_LIMIT = 400_000;
 
-export async function buildSystemPrompt(projectId: string | null) {
-  if (!projectId) return undefined;
-  const project = await db.query.projects.findFirst({ where: eq(schema.projects.id, projectId) });
-  if (!project) return undefined;
+/**
+ * Chat-level template instructions go right after the project's own instructions and before the
+ * knowledge documents. They are skipped when empty or when the project already carries the same text
+ * (a chat created from the template its project was built from), so nothing is said twice.
+ */
+export function composeInstructions(
+  projectInstructions: string | undefined,
+  templateInstructions: string | null | undefined,
+) {
+  const project = projectInstructions?.trim() ?? "";
+  const template = templateInstructions?.trim() ?? "";
+  const duplicate = !template || project.includes(template);
+  return [project, duplicate ? "" : template].filter(Boolean);
+}
+
+export async function buildSystemPrompt(projectId: string | null, templateInstructions?: string | null) {
+  const project = projectId
+    ? await db.query.projects.findFirst({ where: eq(schema.projects.id, projectId) })
+    : undefined;
+  if (!project) return composeInstructions(undefined, templateInstructions).join("\n\n") || undefined;
   const knowledge = (
     await db.query.files.findMany({
-      where: eq(schema.files.projectId, projectId),
+      where: eq(schema.files.projectId, project.id),
       orderBy: asc(schema.files.createdAt),
     })
   ).filter((f) => f.extractedText);
-  const sections = [project.instructions.trim()];
+  const sections = composeInstructions(project.instructions, templateInstructions);
   if (knowledge.length) {
     let remaining = KNOWLEDGE_CHAR_LIMIT;
     const docs: string[] = [];
@@ -200,7 +216,7 @@ export async function handleChat(threadId: string, messages: UIMessage[], abortS
   const result = streamText({
     model: resolveModel(engine, thread.model, thread.effort),
     providerOptions: effortProviderOptions(engine, thread.model, thread.effort),
-    instructions: toInstructions(await buildSystemPrompt(thread.projectId), engine),
+    instructions: toInstructions(await buildSystemPrompt(thread.projectId, thread.templateInstructions), engine),
     messages: await convertToModelMessages(await resolveFileParts(messages, engine)),
     abortSignal,
   });

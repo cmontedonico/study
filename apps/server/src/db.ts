@@ -76,6 +76,18 @@ if (!threadColumns.some((c) => c.name === "notion_url")) {
   }
 }
 
+// Template chosen when the chat was created: a snapshot of its identity and instructions, so the chat
+// keeps working (and keeps its prompt) if the template is later edited or deleted.
+for (const column of ["template_id", "template_name", "template_icon", "template_instructions"]) {
+  if (!threadColumns.some((c) => c.name === column)) {
+    try {
+      sqlite.exec(`ALTER TABLE thread ADD COLUMN ${column} TEXT`);
+    } catch (err) {
+      if (!/duplicate column/i.test((err as Error).message)) throw err;
+    }
+  }
+}
+
 // Full-text index: one row per text-bearing message plus one row (message_id = '') for the title.
 sqlite.exec(`
   CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(

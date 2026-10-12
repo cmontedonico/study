@@ -9,7 +9,12 @@ interface Hub {
   threadId: string | null;
   openThread: (id: string | null) => void;
   /** Creates a thread (optionally inside a project) and opens it. */
-  newThread: (projectId?: string | null) => Promise<void>;
+  newThread: (projectId?: string | null, templateId?: string | null) => Promise<void>;
+  /** Asks "clean or from a template?" before creating the chat. */
+  pickNewChat: (projectId?: string | null) => void;
+  /** Open state of the new-chat picker; `projectId` is where the chat will be created. */
+  picker: { projectId: string | null } | null;
+  closePicker: () => void;
 }
 
 const HubContext = createContext<Hub | null>(null);
@@ -78,15 +83,25 @@ export function HubProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const newThread = useCallback(
-    async (projectId?: string | null) => {
-      const thread = await api.createThread({ projectId });
+    async (projectId?: string | null, templateId?: string | null) => {
+      const thread = await api.createThread({ projectId, templateId });
       await refresh();
       openThread(thread.id);
     },
     [refresh, openThread],
   );
 
-  return <HubContext value={{ state, connectionError, refresh, threadId, openThread, newThread }}>{children}</HubContext>;
+  const [picker, setPicker] = useState<{ projectId: string | null } | null>(null);
+  const pickNewChat = useCallback((projectId?: string | null) => setPicker({ projectId: projectId ?? null }), []);
+  const closePicker = useCallback(() => setPicker(null), []);
+
+  return (
+    <HubContext
+      value={{ state, connectionError, refresh, threadId, openThread, newThread, pickNewChat, picker, closePicker }}
+    >
+      {children}
+    </HubContext>
+  );
 }
 
 export function useHub() {
