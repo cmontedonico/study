@@ -92,22 +92,58 @@ function splitAbc(code: string) {
   return { tab, body };
 }
 
+const ABC_SCALE = 1.3;
+
+const BARS_PER_LINE = 4;
+
+// abcjs ignores `wrap` when a tablature is requested, so long tunes get a line break every few bars instead.
+function breakLongLines(body: string) {
+  return body
+    .split("\n")
+    .map((line) => {
+      if (/^\s*([A-Za-z]:|%)/.test(line)) return line;
+      const parts = line.split(/(\|\]|\|\||\|:|:\||\|)/);
+      let out = "";
+      let bars = 0;
+      parts.forEach((part, i) => {
+        out += part;
+        if (i % 2 === 1 && ++bars % BARS_PER_LINE === 0 && parts.slice(i + 1).join("").trim()) out += "\n";
+      });
+      return out;
+    })
+    .join("\n");
+}
+
 function AbcScore({ code, language }: { code: string; language: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
+  const [width, setWidth] = useState(0);
+  // Re-render at the card's width so staff + tab fill it (abcjs wraps long tunes into several lines).
+  useEffect(() => {
+    const host = ref.current;
+    if (!host) return;
+    const ro = new ResizeObserver(() => setWidth(Math.round(host.clientWidth)));
+    ro.observe(host);
+    setWidth(Math.round(host.clientWidth));
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     let cancelled = false;
     const host = ref.current;
-    if (!host) return;
+    if (!host || width < 100) return;
     void import("abcjs").then(({ renderAbc }) => {
       if (cancelled) return;
       const { tab, body } = splitAbc(code);
       host.replaceChildren();
       try {
-        const tunes = renderAbc(host, body, {
+        const tunes = renderAbc(host, tab ? breakLongLines(body) : body, {
           responsive: "resize",
           add_classes: false,
-          ...(tab ? { tablature: [{ instrument: "guitar" }] } : {}),
+          scale: ABC_SCALE,
+          staffwidth: Math.max(200, Math.floor(width / ABC_SCALE)),
+          ...(tab
+            ? { tablature: [{ instrument: "guitar" }] }
+            : { wrap: { minSpacing: 1.8, maxSpacing: 2.7, preferredMeasuresPerLine: 4 } }),
         });
         const ok = tunes.some((t) => t.lines && t.lines.length > 0) && host.querySelector("svg");
         setError(ok ? undefined : "notación ABC no válida");
@@ -118,11 +154,11 @@ function AbcScore({ code, language }: { code: string; language: string }) {
     return () => {
       cancelled = true;
     };
-  }, [code]);
+  }, [code, width]);
   return (
     <>
       <div className={error ? "hidden" : `${PAPER} max-w-full overflow-x-auto`}>
-        <div ref={ref} className="text-black [&_svg]:h-auto [&_svg]:w-full [&_svg]:max-w-full" />
+        <div ref={ref} className="w-full text-black [&_svg]:h-auto [&_svg]:max-w-full" />
       </div>
       {error && <Fallback code={code} language={language} error={error} />}
     </>
