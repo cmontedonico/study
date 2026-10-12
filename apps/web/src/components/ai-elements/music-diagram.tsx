@@ -6,7 +6,8 @@ import type { ChordSpec } from "@/lib/chord-block";
 
 // Custom fenced-block renderers for the guitar tutor (```chord, ```abc). Registered in streamdown-renderer.tsx as
 // part of `plugins.renderers`; other features add their own arrays the same way (language -> component).
-// Diagrams are drawn in black on transparent and inverted in dark mode, so they follow the app theme.
+// Notation is always black on a white "paper" card, in light and dark theme (no inversion).
+const PAPER = "my-4 rounded-xl border border-border bg-white p-3 text-black shadow-xs";
 
 function Fallback({ code, language, error }: { code: string; language: string; error?: string }) {
   return (
@@ -37,7 +38,7 @@ function ChordDiagram({ spec }: { spec: ChordSpec }) {
           title: spec.name,
           noPosition: l.position === 1,
           color: "#000",
-          backgroundColor: "transparent",
+          backgroundColor: "#fff",
           fingerTextColor: "#fff",
           tuning: spec.frets.length === 6 ? ["E", "A", "D", "G", "B", "E"] : undefined,
           fontFamily: "inherit",
@@ -53,7 +54,7 @@ function ChordDiagram({ spec }: { spec: ChordSpec }) {
       cancelled = true;
     };
   }, [spec]);
-  return <div ref={ref} className="w-36 shrink-0 dark:invert sm:w-40 [&_svg]:h-auto [&_svg]:w-full" />;
+  return <div ref={ref} className="w-36 shrink-0 text-black sm:w-40 [&_svg]:h-auto [&_svg]:w-full" />;
 }
 
 interface BlockProps {
@@ -67,7 +68,7 @@ function ChordRenderer({ code, isIncomplete, language }: BlockProps) {
   if (!parsed) return <Fallback code={code} language={language} />;
   if (!parsed.ok) return <Fallback code={code} language={language} error={parsed.error} />;
   return (
-    <div className="my-4 flex flex-wrap gap-4 rounded-xl border bg-background p-3" role="group" aria-label="Diagramas de acordes">
+    <div className={`${PAPER} flex flex-wrap gap-4`} role="group" aria-label="Diagramas de acordes">
       {parsed.chords.map((spec, i) => (
         <ChordDiagram key={i} spec={spec} />
       ))}
@@ -120,8 +121,8 @@ function AbcScore({ code, language }: { code: string; language: string }) {
   }, [code]);
   return (
     <>
-      <div className={error ? "hidden" : "my-4 overflow-x-auto rounded-xl border bg-background p-3"}>
-        <div ref={ref} className="dark:invert [&_svg]:h-auto [&_svg]:w-full" />
+      <div className={error ? "hidden" : `${PAPER} max-w-full overflow-x-auto`}>
+        <div ref={ref} className="text-black [&_svg]:h-auto [&_svg]:w-full [&_svg]:max-w-full" />
       </div>
       {error && <Fallback code={code} language={language} error={error} />}
     </>
