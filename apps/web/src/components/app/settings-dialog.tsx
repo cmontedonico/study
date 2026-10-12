@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api, engines, models, type Engine, type ModelAlias } from "@/lib/api";
 import { useHub } from "@/lib/hub";
 import { ConnectDevice } from "./connect-device";
+import { NotionConnection } from "./notion-connection";
 
 export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { state, refresh } = useHub();
@@ -102,6 +103,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
             </p>
           </div>
 
+          <NotionConnection />
           <ConnectDevice />
         </div>
 

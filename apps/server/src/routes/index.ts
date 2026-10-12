@@ -3,6 +3,7 @@ import { accessRoutes } from "./access.ts";
 import { chatRoutes } from "./chat.ts";
 import { fileRoutes } from "./files.ts";
 import { knowledgeRoutes } from "./knowledge.ts";
+import { notionRoutes } from "./notion.ts";
 import { projectRoutes } from "./projects.ts";
 import { searchRoutes } from "./search.ts";
 import { settingsRoutes } from "./settings.ts";
@@ -22,6 +23,7 @@ export const api = new Hono()
   .route("/files", fileRoutes)
   .route("/knowledge", knowledgeRoutes)
   .route("/templates", templateRoutes)
+  .route("/notion", notionRoutes())
   .route("/settings", settingsRoutes)
   .route("/search", searchRoutes)
   .route("/transcribe", transcribeRoutes);

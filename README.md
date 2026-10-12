@@ -128,6 +128,12 @@ El servidor escucha en `0.0.0.0:4317`. Checklist:
 | Botón del micrófono desactivado en el iPhone | Accedes por `http://` (no es contexto seguro) | Usa HTTPS con `tailscale serve --bg 4317` |
 | Pide token o responde 401 | Cookie caducada o token regenerado | Vuelve a conectar el dispositivo: *Ajustes → Conectar dispositivo* |
 
+## Conectar con Notion
+
+*Ajustes → Notion → Conectar con Notion* (solo desde la Mac: la redirección vuelve a `http://localhost:<puerto>/api/notion/callback`). Usa el servidor MCP oficial de Notion (`https://mcp.notion.com/mcp`) con OAuth y PKCE; los tokens se guardan solo en la base de datos local.
+
+Permisos: en la pantalla de consentimiento de Notion eliges a qué páginas puede acceder StudyLab. Para poder exportar, concede acceso a una **página padre** (por ejemplo "StudyLab") y los exports se crearán dentro de ella. Puedes cambiarlo después desde Notion (*Ajustes → Conexiones*) o desconectando y volviendo a conectar. *Probar conexión* y la lista de herramientas confirman qué está disponible.
+
 ## Limitaciones conocidas
 - El audio no se admite como archivo de conocimiento de un proyecto (solo como adjunto/dictado en el chat).
 - La búsqueda no mira dentro de los archivos de conocimiento.
