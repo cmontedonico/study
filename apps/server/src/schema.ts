@@ -19,6 +19,10 @@ export const templates = sqliteTable("template", {
   icon: text("icon").notNull().default("✨"),
   instructions: text("instructions").notNull().default(""),
   builtIn: integer("built_in", { mode: "boolean" }).notNull().default(false),
+  /** Built-in whose content was edited by the user: seeding no longer overwrites it. */
+  customized: integer("customized", { mode: "boolean" }).notNull().default(false),
+  /** Built-in deleted by the user (soft delete, recoverable). */
+  hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
   ...timestamps,
 });
 

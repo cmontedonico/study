@@ -96,13 +96,27 @@ if (!sqlite.prepare("SELECT 1 FROM message_fts LIMIT 1").get()) {
   for (const t of sqlite.prepare("SELECT id FROM thread").all() as { id: string }[]) reindexThread(t.id);
 }
 
+// Columns added after the first release of the template table.
+const templateColumns = (sqlite.pragma("table_info(template)") as { name: string }[]).map((c) => c.name);
+for (const column of ["customized", "hidden"]) {
+  if (!templateColumns.includes(column)) {
+    sqlite.exec(`ALTER TABLE template ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`);
+  }
+}
+
 const upsertTemplate = sqlite.prepare(`
   INSERT INTO template (id, name, description, icon, instructions, built_in)
   VALUES (@id, @name, @description, @icon, @instructions, 1)
   ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description,
     icon = excluded.icon, instructions = excluded.instructions
+  WHERE template.customized = 0
 `);
-for (const t of builtInTemplates) upsertTemplate.run(t);
+
+/** Inserts missing built-ins and refreshes the untouched ones; edited (customized) and hidden ones are kept. */
+export function seedBuiltInTemplates() {
+  for (const t of builtInTemplates) upsertTemplate.run(t);
+}
+seedBuiltInTemplates();
 
 export { sqlite };
 export const db = drizzle(sqlite, { schema });
