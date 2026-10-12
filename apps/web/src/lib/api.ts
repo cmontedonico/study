@@ -59,6 +59,16 @@ export interface Settings {
   defaultEngine: Engine;
   defaultModel: ModelAlias;
   hasApiKey: boolean;
+  notionConnected: boolean;
+}
+
+export interface NotionStatus {
+  connected: boolean;
+  workspace?: string;
+  user?: string;
+  /** Tool names exposed by Notion's MCP server: they reflect the permissions granted. */
+  tools?: string[];
+  error?: string;
 }
 
 export interface HubState {
@@ -159,7 +169,13 @@ export const api = {
   search: (q: string, signal?: AbortSignal) =>
     request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`, { signal }),
 
-  updateSettings: (body: Partial<Omit<Settings, "hasApiKey"> & { anthropicApiKey: string | null }>) =>
+  notionStatus: () => request<NotionStatus>("/notion/status"),
+  /** Loopback only: returns the Notion authorization URL to open in a browser. */
+  notionConnect: () => request<{ url: string }>("/notion/connect", { method: "POST" }),
+  notionDisconnect: () => request<NotionStatus>("/notion/disconnect", { method: "POST" }),
+  notionTest: () => request<{ ok: boolean; result: string }>("/notion/test", { method: "POST" }),
+
+  updateSettings: (body: Partial<Omit<Settings, "hasApiKey" | "notionConnected"> & { anthropicApiKey: string | null }>) =>
     request<Settings>("/settings", json("PUT", body)),
 
   /** Loopback only: connection URLs (with token) for other devices. */
