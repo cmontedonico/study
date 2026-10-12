@@ -120,10 +120,9 @@ function AbcScore({ code, language }: { code: string; language: string }) {
   }, [code]);
   return (
     <>
-      <div
-        ref={ref}
-        className={error ? "hidden" : "my-4 overflow-x-auto rounded-xl border bg-background p-3 dark:invert [&_svg]:h-auto [&_svg]:w-full"}
-      />
+      <div className={error ? "hidden" : "my-4 overflow-x-auto rounded-xl border bg-background p-3"}>
+        <div ref={ref} className="dark:invert [&_svg]:h-auto [&_svg]:w-full" />
+      </div>
       {error && <Fallback code={code} language={language} error={error} />}
     </>
   );

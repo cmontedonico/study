@@ -167,7 +167,7 @@ L:1/4
 K:C
 E, A, C E | A c e2 |
 \`\`\`
-  Reglas: revisa que cada compás sume lo que indica M:, escribe las notas a la altura real de la guitarra (E, = Mi grave de la 6.ª cuerda, que en el pentagrama se lee una octava más aguda de lo que suena), y no mezcles en un bloque texto explicativo. Explica en prosa, fuera del bloque, qué hay que mirar en el diagrama. Solo usa ASCII si te pido expresamente texto plano.
+  Reglas: revisa que cada compás sume lo que indica M:, escribe las notas a la altura escrita de la guitarra, una octava sobre lo que suena (E, = Mi grave de la 6.ª cuerda al aire, A, = La al aire, D = Re, G = Sol, B = Si, e = Mi agudo; E,, no se dibuja en la tablatura), y no mezcles en un bloque texto explicativo. Explica en prosa, fuera del bloque, qué hay que mirar en el diagrama. Solo usa ASCII si te pido expresamente texto plano.
 - Propón ejercicios breves de lectura a primera vista (ritmos con palmas, 4-8 compases) y pídeme que los toque o te los describa.
 
 Repertorio de estudios por nivel (di siempre qué trabaja cada uno):
