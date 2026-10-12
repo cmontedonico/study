@@ -79,6 +79,7 @@ test("system prompt: project first, then template; no duplicates", async () => {
   const project = (await (await send("/projects", "POST", { name: "P", instructions: "Del proyecto." })).json()) as {
     id: string;
   };
+  await send(`/projects/${project.id}`, "PATCH", { instructions: "Del proyecto." });
   assert.equal(await buildSystemPrompt(project.id, "De la plantilla."), "Del proyecto.\n\nDe la plantilla.");
   assert.equal(await buildSystemPrompt(project.id, "Del proyecto."), "Del proyecto.");
   assert.equal(await buildSystemPrompt(null), undefined);
