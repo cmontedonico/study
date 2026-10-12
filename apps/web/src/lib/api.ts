@@ -22,6 +22,16 @@ export interface Thread {
   updatedAt: number;
 }
 
+export interface ThreadUsage {
+  /** Fresh (non-cached) prompt tokens. */
+  input: number;
+  cacheRead: number;
+  cacheWrite: number;
+  output: number;
+  messages: number;
+  costUsd: number | null;
+}
+
 export interface SearchResult {
   threadId: string;
   title: string;
@@ -165,6 +175,8 @@ export const api = {
   forkThread: (id: string, messageId: string) =>
     request<Thread>(`/threads/${id}/fork`, json("POST", { messageId })),
   messages: (threadId: string) => request<UIMessage[]>(`/threads/${threadId}/messages`),
+
+  threadUsage: (threadId: string) => request<ThreadUsage>(`/threads/${threadId}/usage`),
 
   search: (q: string, signal?: AbortSignal) =>
     request<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`, { signal }),

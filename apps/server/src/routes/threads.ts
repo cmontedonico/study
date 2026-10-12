@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, reindexThread, removeThreadFromIndex, schema } from "../db.ts";
+import { aggregateUsage } from "../pricing.ts";
 import { publicSettings } from "../settings.ts";
 import { engine, model } from "./validators.ts";
 
@@ -52,6 +53,25 @@ threadRoutes.get("/:id/messages", async (c) => {
     .where(eq(schema.messages.threadId, c.req.param("id")))
     .orderBy(asc(schema.messages.position));
   return c.json(rows.map(({ id, role, parts }) => ({ id, role, parts })));
+});
+
+threadRoutes.get("/:id/usage", async (c) => {
+  const rows = await db
+    .select()
+    .from(schema.messageUsage)
+    .where(eq(schema.messageUsage.threadId, c.req.param("id")));
+  return c.json(
+    aggregateUsage(
+      rows.map((r) => ({
+        model: r.model,
+        input: r.inputTokens,
+        cacheRead: r.cacheReadTokens,
+        cacheWrite: r.cacheWriteTokens,
+        output: r.outputTokens,
+        costUsd: r.costUsd,
+      })),
+    ),
+  );
 });
 
 threadRoutes.post("/:id/fork", async (c) => {

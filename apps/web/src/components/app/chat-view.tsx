@@ -44,6 +44,7 @@ import { isAudioFile } from "@/lib/audio";
 import { api, engines, models, type Engine, type ModelAlias, type Thread } from "@/lib/api";
 import { downloadMarkdown, threadToMarkdown } from "@/lib/export";
 import { useHub } from "@/lib/hub";
+import { UsageFooter } from "./usage-footer";
 
 /** Files from the prompt input keep the attachment id (see prompt-input.tsx). */
 type PickedFile = FileUIPart & { id: string };
@@ -312,6 +313,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
             <SubmitButton status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>
+        <UsageFooter threadId={thread.id} engine={thread.engine} status={status} />
       </div>
     </>
   );

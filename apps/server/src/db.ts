@@ -42,6 +42,22 @@ sqlite.exec(`
   CREATE TABLE IF NOT EXISTS setting (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
 
+// Token usage per assistant message. Kept apart from `message` because saveThreadMessages rewrites those rows.
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS message_usage (
+    thread_id TEXT NOT NULL REFERENCES thread(id) ON DELETE CASCADE,
+    message_id TEXT NOT NULL,
+    model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+    cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_usd REAL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+    PRIMARY KEY (thread_id, message_id)
+  );
+`);
+
 // Idempotent column additions (no migrations): add here when a table gains a column.
 const threadColumns = sqlite.prepare("PRAGMA table_info(thread)").all() as { name: string }[];
 if (!threadColumns.some((c) => c.name === "title_source")) {
