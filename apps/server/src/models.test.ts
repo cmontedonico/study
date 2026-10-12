@@ -21,4 +21,5 @@ test("every alias has CLI and API ids, Fable is pinned to 5.1", () => {
   }
   assert.equal(apiModelIds.fable, "claude-fable-5-1");
   assert.equal(cliModelIds.fable, "claude-fable-5-1");
+  assert.equal(cliModelIds.haiku, "claude-haiku-5-5");
 });

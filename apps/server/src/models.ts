@@ -11,7 +11,7 @@ export type EffortLevel = (typeof effortLevels)[number];
 /**
  * Mirrors what the bundled CLI reports via the Agent SDK `query().supportedModels()`
  * (@anthropic-ai/claude-agent-sdk 0.3.x): Opus, Sonnet and Fable support every effort level; the Haiku
- * alias (4.5) reports no effort support. Kept as a constant because that query spawns a CLI process.
+ * alias reports no effort support (the CLI does not reject `--effort` on claude-haiku-5-5, but nothing confirms it applies, so it stays off). Kept as a constant because that query spawns a CLI process.
  */
 export const modelEfforts: Record<ModelAlias, readonly EffortLevel[]> = {
   opus: effortLevels,
@@ -28,13 +28,11 @@ export const apiModelIds: Record<ModelAlias, string> = {
   fable: "claude-fable-5-1",
 };
 
-/** What `--model` receives on the CLI engine: the CLI's own aliases, except Fable 5.1 which is pinned by id. */
-export const cliModelIds: Record<ModelAlias, string> = {
-  opus: "opus",
-  sonnet: "sonnet",
-  haiku: "haiku",
-  fable: "claude-fable-5-1",
-};
+/**
+ * What `--model` receives on the CLI engine. Explicit ids, same as the API engine, so the label, the pricing
+ * and the model that actually runs always match (the CLI accepts these ids; its aliases are only a moving target).
+ */
+export const cliModelIds: Record<ModelAlias, string> = apiModelIds;
 
 export function isModelAlias(value: string): value is ModelAlias {
   return (modelAliases as readonly string[]).includes(value);
