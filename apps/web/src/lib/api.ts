@@ -170,6 +170,14 @@ export const api = {
   /** Dictation: a 16 kHz mono WAV in, plain text out. */
   transcribe: (wav: Blob, signal?: AbortSignal) =>
     request<{ text: string }>("/transcribe", { method: "POST", body: wav, headers: { "content-type": "audio/wav" }, signal }),
+  transcribeLive: (wav: Blob, language: string | undefined, signal?: AbortSignal) =>
+    request<{ text: string; language?: string }>(`/transcribe?live=1${language ? `&language=${language}` : ""}`, {
+      method: "POST",
+      body: wav,
+      headers: { "content-type": "audio/wav" },
+      signal,
+    }),
+  warmTranscription: () => request<{ ok: boolean }>("/transcribe/warm", { method: "POST" }),
   fileTranscript: (url: string) => request<{ text: string }>(url.replace(/^\/api/, "") + "/transcript"),
 
   /** Uploads a file picked in the prompt input and returns a part that references it. */

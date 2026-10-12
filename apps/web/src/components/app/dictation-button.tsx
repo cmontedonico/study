@@ -4,25 +4,31 @@ import { toast } from "sonner";
 import { PromptInputButton } from "@/components/ai-elements/prompt-input";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
-import { formatDuration, toWav } from "@/lib/audio";
+import { encodeWav, formatDuration } from "@/lib/audio";
 import { useModelStatusLabel } from "@/components/app/audio-uploads";
+import { canCapture, captureMic } from "@/lib/live-capture";
+import { rms, SEGMENT_RATE, Segmenter, type AudioSegment } from "@/lib/segmenter";
 
 const MAX_SECONDS = 15 * 60;
-const MIME_CANDIDATES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+/** Detection on a very short segment is unreliable; only lock the language from a segment at least this long. */
+const MIN_SECONDS_TO_LOCK_LANGUAGE = 1.5;
 
 export const INSECURE_MESSAGE =
   "El dictado necesita HTTPS: usa «tailscale serve» (ver README) o el dictado del teclado.";
 
 /** getUserMedia only exists on https:// and localhost. */
 export function canRecord() {
-  return window.isSecureContext && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined";
+  return window.isSecureContext && !!navigator.mediaDevices?.getUserMedia && canCapture();
 }
 
-/** Inserts text at the caret (or appends with a space) and notifies React as if the user had typed it. */
-function insertIntoTextarea(textarea: HTMLTextAreaElement, text: string) {
+/**
+ * Inserts text at `at` (default: the selection) or appends with a space, and notifies React as if the user had
+ * typed it. Returns the caret position after the insertion.
+ */
+function insertIntoTextarea(textarea: HTMLTextAreaElement, text: string, at?: number): number {
   const { value } = textarea;
-  const start = textarea.selectionStart ?? value.length;
-  const end = textarea.selectionEnd ?? value.length;
+  const start = at ?? textarea.selectionStart ?? value.length;
+  const end = at ?? textarea.selectionEnd ?? value.length;
   const before = value.slice(0, start);
   const after = value.slice(end);
   const lead = before && !/\s$/.test(before) ? " " : "";
@@ -33,64 +39,109 @@ function insertIntoTextarea(textarea: HTMLTextAreaElement, text: string) {
   const caret = before.length + inserted.length;
   textarea.setSelectionRange(caret, caret);
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
-  textarea.focus();
+  return caret;
 }
 
-type Phase = "idle" | "recording" | "transcribing";
+/** Everything that belongs to one dictation, so a stale callback can never touch the next one. */
+interface Session {
+  segmenter: Segmenter;
+  chain: Promise<void>;
+  controller: AbortController;
+  language?: string;
+  caret: number | null;
+  inserted: number;
+  level: number;
+  cancelled: boolean;
+  stopCapture?: () => void;
+  stream?: MediaStream;
+}
 
-/** Mic button for the prompt toolbar: record → local Whisper on the server → text in the textarea. */
+/**
+ * Mic button for the prompt toolbar. Audio is cut at pauses (or every ~8 s) and each piece goes to the local
+ * Whisper on the server, in order; the text lands in the textarea while the user keeps talking.
+ */
 export function DictationButton() {
   const supported = canRecord();
   const anchor = useRef<HTMLSpanElement>(null);
-  const recorder = useRef<MediaRecorder | null>(null);
-  const stream = useRef<MediaStream | null>(null);
-  const cancelled = useRef(false);
-  const abort = useRef<AbortController | null>(null);
-  const [phase, setPhase] = useState<Phase>("idle");
+  const session = useRef<Session | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [pending, setPending] = useState(0);
   const [elapsed, setElapsed] = useState(0);
-  const modelLabel = useModelStatusLabel(phase === "transcribing");
+  const [level, setLevel] = useState(0);
+  const modelLabel = useModelStatusLabel(pending > 0);
 
   const textarea = () => anchor.current?.closest("form")?.querySelector("textarea") ?? null;
 
-  const release = useCallback(() => {
-    stream.current?.getTracks().forEach((t) => t.stop());
-    stream.current = null;
+  const insert = (s: Session, text: string) => {
+    const target = textarea();
+    if (!target) return;
+    const selection = target.selectionStart ?? target.value.length;
+    // Follow the user's caret if they moved it (or typed) since our last insertion.
+    const moved = s.caret === null || (document.activeElement === target && selection !== s.caret);
+    const at = Math.min(moved ? selection : s.caret!, target.value.length);
+    s.caret = insertIntoTextarea(target, text, at);
+    s.inserted++;
+  };
+
+  const enqueue = (s: Session, segment: AudioSegment) => {
+    setPending((n) => n + 1);
+    const seconds = segment.samples.length / SEGMENT_RATE;
+    // Sequential on purpose: segments must land in the order they were spoken.
+    s.chain = s.chain.then(async () => {
+      try {
+        if (s.cancelled) return;
+        const { text, language } = await api.transcribeLive(encodeWav(segment.samples), s.language, s.controller.signal);
+        if (s.cancelled) return;
+        const clean = text.trim();
+        if (language && !s.language && clean && seconds >= MIN_SECONDS_TO_LOCK_LANGUAGE) s.language = language;
+        if (clean) insert(s, clean);
+      } catch (e) {
+        if (!s.cancelled) toast.error((e as Error).message);
+      } finally {
+        if (!s.cancelled) setPending((n) => Math.max(0, n - 1));
+      }
+    });
+  };
+
+  const teardown = useCallback((s: Session) => {
+    s.stopCapture?.();
+    s.stream?.getTracks().forEach((t) => t.stop());
+    s.stopCapture = undefined;
+    s.stream = undefined;
   }, []);
 
-  const finish = useCallback(async (chunks: Blob[], type: string) => {
-    if (cancelled.current) return setPhase("idle");
-    setPhase("transcribing");
-    const controller = new AbortController();
-    abort.current = controller;
-    try {
-      const wav = await toWav(new Blob(chunks, { type }));
-      const { text } = await api.transcribe(wav, controller.signal);
-      const target = textarea();
-      if (!text.trim()) toast.info("No se entendió nada. Inténtalo de nuevo.");
-      else if (target) insertIntoTextarea(target, text.trim());
-    } catch (e) {
-      if (!controller.signal.aborted) toast.error((e as Error).message);
-    } finally {
-      abort.current = null;
-      setPhase("idle");
-    }
-  }, []);
-
-  const stop = useCallback(() => {
-    if (recorder.current?.state === "recording") recorder.current.stop();
-  }, []);
+  const stop = () => {
+    const s = session.current;
+    if (!s || s.cancelled) return;
+    teardown(s);
+    const last = s.segmenter.flush();
+    if (last) enqueue(s, last);
+    setRecording(false);
+    void s.chain.then(() => {
+      if (s.cancelled || session.current !== s) return;
+      session.current = null;
+      if (!s.inserted) toast.info("No se entendió nada. Inténtalo de nuevo.");
+    });
+  };
+  const stopRef = useRef(stop);
+  stopRef.current = stop;
 
   const cancel = useCallback(() => {
-    cancelled.current = true;
-    abort.current?.abort();
-    if (recorder.current?.state === "recording") recorder.current.stop();
-    else setPhase("idle");
-  }, []);
+    const s = session.current;
+    if (!s) return;
+    s.cancelled = true;
+    s.controller.abort();
+    teardown(s);
+    session.current = null;
+    setRecording(false);
+    setPending(0);
+  }, [teardown]);
 
   async function start() {
     if (!supported) return void toast.info(INSECURE_MESSAGE);
+    let stream: MediaStream;
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e) {
       const denied = e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError");
       toast.error(
@@ -100,49 +151,54 @@ export function DictationButton() {
       );
       return;
     }
-    const mimeType = MIME_CANDIDATES.find((t) => MediaRecorder.isTypeSupported(t));
-    const rec = new MediaRecorder(stream.current, mimeType ? { mimeType } : undefined);
-    const chunks: Blob[] = [];
-    cancelled.current = false;
-    rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
-    rec.onstop = () => {
-      release();
-      void finish(chunks, rec.mimeType || mimeType || "audio/webm");
+    const s: Session = {
+      segmenter: new Segmenter(),
+      chain: Promise.resolve(),
+      controller: new AbortController(),
+      caret: null,
+      inserted: 0,
+      level: 0,
+      cancelled: false,
+      stream,
     };
-    recorder.current = rec;
-    rec.start(1000);
+    try {
+      s.stopCapture = await captureMic(stream, (samples) => {
+        s.level = Math.max(rms(samples), s.level * 0.85);
+        for (const segment of s.segmenter.push(samples)) enqueue(s, segment);
+      });
+    } catch {
+      teardown(s);
+      toast.error("No se pudo iniciar la captura de audio");
+      return;
+    }
+    session.current = s;
+    // Loads (and warms) the model while the user starts talking.
+    void api.warmTranscription().catch(() => undefined);
     setElapsed(0);
-    setPhase("recording");
+    setRecording(true);
   }
 
-  // Elapsed timer, auto-stop at the cap, and Esc to cancel while recording.
+  // Elapsed timer, level meter, auto-stop at the cap, and Esc to cancel while recording.
   useEffect(() => {
-    if (phase !== "recording") return;
+    if (!recording) return;
     const began = Date.now();
     const timer = setInterval(() => {
       const seconds = (Date.now() - began) / 1000;
-      setElapsed(seconds);
-      if (seconds >= MAX_SECONDS) stop();
-    }, 250);
+      setElapsed(Math.floor(seconds));
+      setLevel(Math.min(1, Math.sqrt(session.current?.level ?? 0) * 2));
+      if (seconds >= MAX_SECONDS) stopRef.current();
+    }, 100);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && cancel();
     window.addEventListener("keydown", onKey);
     return () => {
       clearInterval(timer);
       window.removeEventListener("keydown", onKey);
     };
-  }, [phase, stop, cancel]);
+  }, [recording, cancel]);
 
-  useEffect(
-    () => () => {
-      cancelled.current = true;
-      abort.current?.abort();
-      if (recorder.current?.state === "recording") recorder.current.stop();
-      release();
-    },
-    [release],
-  );
+  useEffect(() => () => cancel(), [cancel]);
 
-  if (phase === "recording") {
+  if (recording) {
     return (
       <span ref={anchor} className="flex items-center gap-2">
         <PromptInputButton
@@ -155,6 +211,18 @@ export function DictationButton() {
         <span className="flex items-center gap-1.5 text-xs tabular-nums" role="status" aria-label="Grabando">
           <span className="size-2 animate-pulse rounded-full bg-red-500" />
           {formatDuration(elapsed)}
+          <span aria-hidden className="bg-muted h-1.5 w-10 overflow-hidden rounded-full">
+            <span
+              className="block h-full rounded-full bg-red-500 transition-[width] duration-100"
+              style={{ width: `${level * 100}%` }}
+            />
+          </span>
+          {pending > 0 && (
+            <span className="text-muted-foreground flex items-center gap-1" data-testid="dictation-pending">
+              <Spinner className="size-3" />
+              <span className="max-w-40 truncate">{modelLabel ?? "transcribiendo…"}</span>
+            </span>
+          )}
           <button type="button" onClick={cancel} className="text-muted-foreground hover:text-foreground ml-1 underline">
             Cancelar
           </button>
@@ -163,7 +231,7 @@ export function DictationButton() {
     );
   }
 
-  if (phase === "transcribing") {
+  if (pending > 0) {
     return (
       <span ref={anchor} className="text-muted-foreground flex items-center gap-2 text-xs" role="status">
         <Spinner className="size-4" />

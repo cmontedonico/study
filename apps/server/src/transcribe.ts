@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { filterHallucinations } from "./hallucinations.ts";
 import { dataDir } from "./paths.ts";
 import { parseWav, WHISPER_SAMPLE_RATE } from "./wav.ts";
 
@@ -164,13 +165,19 @@ export function formatSegments(segments: Segment[], span = 30): string {
 // Jobs run one at a time: the model is big and onnxruntime already uses every core.
 let queue: Promise<unknown> = Promise.resolve();
 
+function enqueue<T>(run: () => Promise<T>): Promise<T> {
+  const job = queue.then(run);
+  queue = job.catch(() => undefined);
+  return job;
+}
+
 export interface TranscribeOptions {
   /** Prefix coarse `[mm:ss]` markers (used for attachments; dictation wants plain text). */
   timestamps?: boolean;
 }
 
 export function transcribe(audio: Float32Array, options: TranscribeOptions = {}): Promise<string> {
-  const job = queue.then(async () => {
+  return enqueue(async () => {
     if (audio.length < WHISPER_SAMPLE_RATE * 0.3) return "";
     if (audio.length > MAX_AUDIO_SECONDS * WHISPER_SAMPLE_RATE) {
       throw new Error(`El audio supera el máximo de ${MAX_AUDIO_SECONDS / 60} minutos`);
@@ -189,8 +196,47 @@ export function transcribe(audio: Float32Array, options: TranscribeOptions = {})
     }
     return result.text.trim();
   });
-  queue = job.catch(() => undefined);
-  return job;
+}
+
+/** Segments quieter than this (RMS) are room noise: Whisper would only make things up. */
+export const LIVE_MIN_RMS = 0.006;
+const LIVE_MAX_SECONDS = 29;
+
+export interface LiveResult {
+  text: string;
+  /** Whisper language code; the client sends it back so later segments skip detection (one encoder pass less). */
+  language?: string;
+}
+
+/**
+ * One short dictation segment (<30 s, a single Whisper window). Pass `language` after the first segment:
+ * detection costs a full encoder pass, about as much as the transcription itself.
+ */
+export function transcribeLive(audio: Float32Array, language?: string): Promise<LiveResult> {
+  return enqueue(async () => {
+    if (audio.length < WHISPER_SAMPLE_RATE * 0.3 || audio.length > LIVE_MAX_SECONDS * WHISPER_SAMPLE_RATE) {
+      return { text: "", ...(language ? { language } : {}) };
+    }
+    let sum = 0;
+    for (let i = 0; i < audio.length; i++) sum += audio[i]! * audio[i]!;
+    if (Math.sqrt(sum / audio.length) < LIVE_MIN_RMS) return { text: "", ...(language ? { language } : {}) };
+    const asr = await loadModel();
+    const lang = language ?? (await detectLanguage(asr, audio));
+    const result = await asr(audio, {
+      task: "transcribe",
+      max_new_tokens: 160,
+      ...(lang ? { language: lang } : {}),
+    });
+    return { text: filterHallucinations(result.text), ...(lang ? { language: lang } : {}) };
+  });
+}
+
+/** Loads the model and runs one dummy pass so the first real segment does not pay for it. */
+export function warmUp(): Promise<void> {
+  return enqueue(async () => {
+    const asr = await loadModel();
+    await asr(new Float32Array(WHISPER_SAMPLE_RATE), { task: "transcribe", language: "es", max_new_tokens: 4 });
+  });
 }
 
 /** Transcript stored with an audio attachment: timestamps help when the model is asked about a moment. */
