@@ -1,3 +1,4 @@
+import { KeepBottomOnViewportResize } from "@/components/app/keep-bottom-on-viewport";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type FileUIPart, type UIMessage } from "ai";
 import {
@@ -284,6 +285,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
             ))
           )}
         </ConversationContent>
+        <KeepBottomOnViewportResize />
         <ConversationScrollButton />
       </Conversation>
 
