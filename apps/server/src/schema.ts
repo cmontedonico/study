@@ -59,6 +59,11 @@ export const threads = sqliteTable("thread", {
   forkedFromMessageId: text("forked_from_message_id"),
   /** Last Notion page this chat was exported to. */
   notionUrl: text("notion_url"),
+  /** Template picked at creation. Name/icon/instructions are a snapshot: they survive edits and deletion. */
+  templateId: text("template_id"),
+  templateName: text("template_name"),
+  templateIcon: text("template_icon"),
+  templateInstructions: text("template_instructions"),
   ...timestamps,
   updatedAt: integer("updated_at", { mode: "number" })
     .notNull()

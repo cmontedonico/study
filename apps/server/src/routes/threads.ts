@@ -11,9 +11,13 @@ export const threadRoutes = new Hono();
 
 threadRoutes.post("/", async (c) => {
   const body = z
-    .object({ projectId: z.string().nullable().optional(), model: model.optional(), engine: engine.optional(), effort: effort.nullable().optional() })
+    .object({ projectId: z.string().nullable().optional(), model: model.optional(), engine: engine.optional(), effort: effort.nullable().optional(), templateId: z.string().nullable().optional() })
     .parse(await c.req.json());
   const defaults = publicSettings();
+  const template = body.templateId
+    ? await db.query.templates.findFirst({ where: eq(schema.templates.id, body.templateId) })
+    : undefined;
+  if (body.templateId && !template) return c.json({ error: "Plantilla no encontrada" }, 404);
   const [thread] = await db
     .insert(schema.threads)
     .values({
@@ -22,6 +26,12 @@ threadRoutes.post("/", async (c) => {
       model: body.model ?? defaults.defaultModel,
       engine: body.engine ?? defaults.defaultEngine,
       effort: body.effort === undefined ? defaults.defaultEffort : body.effort,
+      ...(template && {
+        templateId: template.id,
+        templateName: template.name,
+        templateIcon: template.icon,
+        templateInstructions: template.instructions,
+      }),
     })
     .returning();
   return c.json(thread);
@@ -103,6 +113,10 @@ threadRoutes.post("/:id/fork", async (c) => {
         engine: parent.engine,
         parentThreadId: parent.id,
         forkedFromMessageId: messageId,
+        templateId: parent.templateId,
+        templateName: parent.templateName,
+        templateIcon: parent.templateIcon,
+        templateInstructions: parent.templateInstructions,
       })
       .returning()
       .get();
