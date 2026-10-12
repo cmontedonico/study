@@ -1,9 +1,17 @@
-import { convertToModelMessages, generateText, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  generateText,
+  streamText,
+  type LanguageModelUsage,
+  type ProviderMetadata,
+  type UIMessage,
+} from "ai";
 import { and, asc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, reindexThread, schema } from "./db.ts";
 import { asAudioTranscript, asDocumentText, getFile, isAudio, readAsDataUrl } from "./files.ts";
 import { resolveModel, type Engine } from "./model.ts";
+import { resolveModelId } from "./pricing.ts";
 
 /**
  * Turns `/api/files/:id` references into something the model can read.
@@ -139,6 +147,41 @@ export async function generateThreadTitle(threadId: string, messages: UIMessage[
   if (updated.length) reindexThread(threadId);
 }
 
+/**
+ * Stores the token usage of the assistant message just produced. Both engines report `inputTokens`
+ * as fresh + cache read + cache write; the CLI engine also reports `total_cost_usd` in provider metadata.
+ */
+async function saveUsage(
+  threadId: string,
+  model: string,
+  finalMessages: UIMessage[],
+  result: { totalUsage: PromiseLike<LanguageModelUsage>; providerMetadata: PromiseLike<ProviderMetadata | undefined> },
+) {
+  const message = finalMessages.findLast((m) => m.role === "assistant");
+  if (!message) return;
+  const usage = await result.totalUsage;
+  const cacheRead = usage.inputTokenDetails.cacheReadTokens ?? 0;
+  const cacheWrite = usage.inputTokenDetails.cacheWriteTokens ?? 0;
+  const input = usage.inputTokenDetails.noCacheTokens ?? Math.max(0, (usage.inputTokens ?? 0) - cacheRead - cacheWrite);
+  const output = usage.outputTokens ?? 0;
+  if (!input && !cacheRead && !cacheWrite && !output) return;
+  const cost = (await result.providerMetadata)?.["claude-code"]?.costUsd;
+  const values = {
+    threadId,
+    messageId: message.id,
+    model: resolveModelId(model),
+    inputTokens: input,
+    cacheReadTokens: cacheRead,
+    cacheWriteTokens: cacheWrite,
+    outputTokens: output,
+    costUsd: typeof cost === "number" ? cost : null,
+  };
+  await db
+    .insert(schema.messageUsage)
+    .values(values)
+    .onConflictDoUpdate({ target: [schema.messageUsage.threadId, schema.messageUsage.messageId], set: values });
+}
+
 export async function handleChat(threadId: string, messages: UIMessage[], abortSignal: AbortSignal) {
   const thread = await db.query.threads.findFirst({ where: eq(schema.threads.id, threadId) });
   if (!thread) throw new Error("Hilo no encontrado");
@@ -166,6 +209,9 @@ export async function handleChat(threadId: string, messages: UIMessage[], abortS
     generateMessageId: nanoid,
     onEnd: async ({ messages: finalMessages }) => {
       await saveThreadMessages(threadId, finalMessages);
+      await saveUsage(threadId, thread.model, finalMessages, result).catch((error) =>
+        console.warn("[usage] could not save usage:", error instanceof Error ? error.message : error),
+      );
       // Fire and forget: the stream must not wait for the title.
       generateThreadTitle(threadId, finalMessages).catch((error) =>
         console.warn("[title] could not generate title:", error instanceof Error ? error.message : error),

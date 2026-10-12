@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   integer,
   primaryKey,
+  real,
   sqliteTable,
   text,
 } from "drizzle-orm/sqlite-core";
@@ -74,6 +75,26 @@ export const messages = sqliteTable(
   },
   // Forked threads copy messages, so ids are only unique within a thread.
   (t) => [primaryKey({ columns: [t.threadId, t.id] })],
+);
+
+/** Token usage of one assistant message. `inputTokens` excludes cached tokens. */
+export const messageUsage = sqliteTable(
+  "message_usage",
+  {
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => threads.id, { onDelete: "cascade" }),
+    messageId: text("message_id").notNull(),
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    /** Cost reported by the provider (CLI engine); null means "estimate from the price table". */
+    costUsd: real("cost_usd"),
+    ...timestamps,
+  },
+  (t) => [primaryKey({ columns: [t.threadId, t.messageId] })],
 );
 
 /** Files uploaded to a chat message or to a project's knowledge. */
