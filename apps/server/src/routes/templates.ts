@@ -1,8 +1,15 @@
 import { and, eq } from "drizzle-orm";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db, schema } from "../db.ts";
+import { generateTemplateDraft, improveInstructions } from "../template-ai.ts";
+import {
+  dedupeNames,
+  parseImportPayload,
+  serializeBundle,
+  serializeTemplateMarkdown,
+} from "../template-io.ts";
 import { builtInTemplates } from "../templates.ts";
 
 export const templateRoutes = new Hono();
@@ -49,6 +56,73 @@ templateRoutes.post("/from-project/:projectId", async (c) => {
     })
     .returning();
   return c.json(row);
+});
+
+const aiError = (c: Context, e: unknown) =>
+  c.json({ error: e instanceof Error ? e.message : "No se pudo completar la petición a la IA." }, 502);
+
+// Literal paths first so they are not taken as `/:id`.
+templateRoutes.post("/generate", async (c) => {
+  const { prompt } = z.object({ prompt: z.string().trim().min(1, "Describe la plantilla que quieres") }).parse(
+    await c.req.json(),
+  );
+  try {
+    return c.json(await generateTemplateDraft(prompt));
+  } catch (e) {
+    return aiError(c, e);
+  }
+});
+
+templateRoutes.post("/improve", async (c) => {
+  const body = z
+    .object({ instructions: z.string().trim().min(1, "No hay instrucciones que mejorar"), request: z.string().optional() })
+    .parse(await c.req.json());
+  try {
+    return c.json({ instructions: await improveInstructions(body.instructions, body.request) });
+  } catch (e) {
+    return aiError(c, e);
+  }
+});
+
+templateRoutes.post("/import", async (c) => {
+  let incoming;
+  try {
+    incoming = parseImportPayload(await c.req.json());
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Archivo no válido" }, 400);
+  }
+  const existing = await db.select({ name: schema.templates.name }).from(schema.templates);
+  const rows = dedupeNames(incoming, existing.map((t) => t.name)).map((t) => ({
+    id: nanoid(),
+    ...t,
+    builtIn: false,
+  }));
+  const created = await db.insert(schema.templates).values(rows).returning();
+  return c.json({ count: created.length, templates: created });
+});
+
+const download = (c: Context, body: string, filename: string, type: string) => {
+  c.header("content-type", `${type}; charset=utf-8`);
+  c.header("content-disposition", `attachment; filename="${filename}"`);
+  return c.body(body);
+};
+const slug = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "plantilla";
+
+templateRoutes.get("/export", async (c) => {
+  const rows = await db.select().from(schema.templates).where(eq(schema.templates.hidden, false));
+  return download(c, serializeBundle(rows), "plantillas-studylab.json", "application/json");
+});
+
+templateRoutes.get("/:id/export", async (c) => {
+  const existing = await findTemplate(c.req.param("id"));
+  if (!existing) return c.json({ error: "Plantilla no encontrada" }, 404);
+  return download(c, serializeTemplateMarkdown(existing), `${slug(existing.name)}.md`, "text/markdown");
 });
 
 templateRoutes.patch("/:id", async (c) => {
