@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { generateSystem, parseGeneratedDraft, parseImprovedInstructions, runWithRetry } from "./template-ai.ts";
+import { generateSystem, improveSystem, parseGeneratedDraft, parseImprovedInstructions, runWithRetry } from "./template-ai.ts";
 
 const draft = {
   name: "Tutor de química",
@@ -50,4 +50,10 @@ test("generation prompt embeds two built-in examples and the rules", () => {
   assert.match(generateSystem, /Asistente de tareas/);
   assert.match(generateSystem, /Tutor de matemáticas/);
   assert.match(generateSystem, /dobles dólares/);
+});
+
+test("improve prompt constrains length, structure and voice", () => {
+  assert.match(improveSystem, /1,5 veces/);
+  assert.match(improveSystem, /afinar las viñetas/);
+  assert.match(improveSystem, /Conserva la voz y la persona/);
 });

@@ -71,7 +71,12 @@ export const improveSystem = `Mejoras instrucciones (system prompts) de plantill
 
 ${RULES}
 
-Ejemplo del estilo esperado:
+Reglas de la mejora:
+- Mantén aproximadamente la longitud original: apunta a ≤ 1,5 veces el tamaño de las instrucciones actuales. Solo puedes pasar de ahí si la petición del usuario pide explícitamente más detalle, o si el original es de una sola línea (en ese caso, hasta ~1.200 caracteres).
+- Prefiere afinar las viñetas existentes antes que añadir secciones nuevas.
+- Conserva la voz y la persona del original: si dice "Eres…" y "Tu objetivo es que yo aprenda", no cambies a primera persona del asistente ni reescribas el planteamiento.
+
+Ejemplo del estilo esperado (solo de estilo; no copies su longitud ni su estructura):
 
 ${example("tutor-matematicas")}
 
