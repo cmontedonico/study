@@ -41,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AudioAttachment, AudioChipStatus, AudioUploadsProvider, useAudioUploads } from "@/components/app/audio-uploads";
 import { DictationButton } from "@/components/app/dictation-button";
 import { ModelPicker } from "@/components/app/model-picker";
+import { NotionExport } from "@/components/app/notion-export";
 import { isAudioFile } from "@/lib/audio";
 import { api, engines, type Engine, type Thread } from "@/lib/api";
 import { downloadMarkdown, threadToMarkdown } from "@/lib/export";
@@ -121,6 +122,7 @@ function ChatHeader({ thread }: { thread: Thread }) {
       <MessageAction tooltip="Exportar a Markdown" onClick={() => void exportMarkdown()}>
         <DownloadIcon className="size-4" />
       </MessageAction>
+      <NotionExport thread={thread} />
       <Select value={thread.engine} onValueChange={(v) => void update({ engine: v as Engine })}>
         <SelectTrigger size="sm" className="hidden sm:flex">
           <SelectValue />

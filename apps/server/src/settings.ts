@@ -11,7 +11,8 @@ export type SettingKey =
   | "notionTokens"
   | "notionClient"
   | "notionPending"
-  | "notionAccount";
+  | "notionAccount"
+  | "notionExportParent";
 
 export function getSetting(key: SettingKey): string | undefined {
   return db.select().from(schema.settings).where(eq(schema.settings.key, key)).get()?.value;
@@ -28,6 +29,15 @@ export function setSetting(key: SettingKey, value: string | null) {
     .run();
 }
 
+function parseParent(raw: string | undefined): { id: string; title: string } | null {
+  try {
+    const p = JSON.parse(raw ?? "null") as { id?: unknown; title?: unknown } | null;
+    return p && typeof p.id === "string" ? { id: p.id, title: typeof p.title === "string" ? p.title : "" } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function publicSettings() {
   return {
     defaultEngine: (getSetting("defaultEngine") ?? "cli") as "cli" | "api",
@@ -35,5 +45,6 @@ export function publicSettings() {
     defaultEffort: (getSetting("defaultEffort") as EffortLevel | undefined) ?? null,
     hasApiKey: Boolean(getSetting("anthropicApiKey")),
     notionConnected: Boolean(getSetting("notionTokens")),
+    notionExportParent: parseParent(getSetting("notionExportParent")),
   };
 }
