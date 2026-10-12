@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, engines, models, type Engine, type ModelAlias } from "@/lib/api";
+import { api, efforts, engines, models, type EffortLevel, type Engine, type ModelAlias } from "@/lib/api";
 import { useHub } from "@/lib/hub";
 import { ConnectDevice } from "./connect-device";
 import { NotionConnection } from "./notion-connection";
@@ -15,12 +15,14 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   const settings = state?.settings;
   const [engine, setEngine] = useState<Engine>("cli");
   const [model, setModel] = useState<ModelAlias>("sonnet");
+  const [effort, setEffort] = useState<EffortLevel | null>(null);
   const [apiKey, setApiKey] = useState("");
 
   useEffect(() => {
     if (!open || !settings) return;
     setEngine(settings.defaultEngine);
     setModel(settings.defaultModel);
+    setEffort(settings.defaultEffort);
     setApiKey("");
   }, [open, settings]);
 
@@ -28,6 +30,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     await api.updateSettings({
       defaultEngine: engine,
       defaultModel: model,
+      defaultEffort: effort,
       ...(apiKey ? { anthropicApiKey: apiKey.trim() } : {}),
     });
     await refresh();
@@ -75,6 +78,25 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
                   {models.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
                       {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Esfuerzo</Label>
+              <Select
+                value={effort ?? "default"}
+                onValueChange={(v) => setEffort(v === "default" ? null : (v as EffortLevel))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Predeterminado</SelectItem>
+                  {efforts.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

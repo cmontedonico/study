@@ -10,7 +10,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, reindexThread, schema } from "./db.ts";
 import { asAudioTranscript, asDocumentText, getFile, isAudio, readAsDataUrl } from "./files.ts";
-import { resolveModel, type Engine } from "./model.ts";
+import { effortProviderOptions, resolveModel, type Engine } from "./model.ts";
 import { resolveModelId } from "./pricing.ts";
 
 /**
@@ -198,7 +198,8 @@ export async function handleChat(threadId: string, messages: UIMessage[], abortS
 
   const engine = thread.engine as Engine;
   const result = streamText({
-    model: resolveModel(engine, thread.model),
+    model: resolveModel(engine, thread.model, thread.effort),
+    providerOptions: effortProviderOptions(engine, thread.model, thread.effort),
     instructions: toInstructions(await buildSystemPrompt(thread.projectId), engine),
     messages: await convertToModelMessages(await resolveFileParts(messages, engine)),
     abortSignal,

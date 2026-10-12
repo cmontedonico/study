@@ -2,7 +2,8 @@ import type { FileUIPart, UIMessage } from "ai";
 import { toast } from "sonner";
 
 export type Engine = "cli" | "api";
-export type ModelAlias = "opus" | "sonnet" | "haiku";
+export type ModelAlias = "opus" | "sonnet" | "haiku" | "fable";
+export type EffortLevel = "low" | "medium" | "high" | "xhigh";
 
 export interface Project {
   id: string;
@@ -17,6 +18,8 @@ export interface Thread {
   projectId: string | null;
   title: string;
   model: ModelAlias;
+  /** null = the model's own default. */
+  effort: EffortLevel | null;
   engine: Engine;
   parentThreadId: string | null;
   updatedAt: number;
@@ -68,6 +71,7 @@ export type TemplateInput = Pick<Template, "name" | "icon" | "description" | "in
 export interface Settings {
   defaultEngine: Engine;
   defaultModel: ModelAlias;
+  defaultEffort: EffortLevel | null;
   hasApiKey: boolean;
   notionConnected: boolean;
 }
@@ -103,10 +107,21 @@ export interface TranscriptionStatus {
   error?: string;
 }
 
-export const models: { id: ModelAlias; label: string }[] = [
-  { id: "opus", label: "Opus" },
-  { id: "sonnet", label: "Sonnet" },
-  { id: "haiku", label: "Haiku" },
+const allEfforts: EffortLevel[] = ["low", "medium", "high", "xhigh"];
+
+/** Mirrors `modelEfforts` in apps/server/src/models.ts (what the CLI reports as supported). */
+export const models: { id: ModelAlias; label: string; description: string; efforts: EffortLevel[] }[] = [
+  { id: "fable", label: "Fable", description: "Lo más capaz, para tareas difíciles", efforts: allEfforts },
+  { id: "opus", label: "Opus", description: "Trabajo complejo y tareas diarias", efforts: allEfforts },
+  { id: "sonnet", label: "Sonnet", description: "Eficiente para tareas rutinarias", efforts: allEfforts },
+  { id: "haiku", label: "Haiku", description: "Respuestas rápidas (sin esfuerzo)", efforts: [] },
+];
+
+export const efforts: { id: EffortLevel; label: string }[] = [
+  { id: "low", label: "Bajo" },
+  { id: "medium", label: "Medio" },
+  { id: "high", label: "Alto" },
+  { id: "xhigh", label: "Muy alto" },
 ];
 
 export const engines: { id: Engine; label: string }[] = [
@@ -169,7 +184,7 @@ export const api = {
     request<Template>(`/templates/from-project/${projectId}`, { method: "POST" }),
 
   createThread: (body: { projectId?: string | null }) => request<Thread>("/threads", json("POST", body)),
-  updateThread: (id: string, body: Partial<Pick<Thread, "title" | "model" | "engine" | "projectId">>) =>
+  updateThread: (id: string, body: Partial<Pick<Thread, "title" | "model" | "effort" | "engine" | "projectId">>) =>
     request<Thread>(`/threads/${id}`, json("PATCH", body)),
   deleteThread: (id: string) => request(`/threads/${id}`, { method: "DELETE" }),
   forkThread: (id: string, messageId: string) =>
