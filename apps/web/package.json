@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-emojibase.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-emojibase.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
@@ -22,6 +24,7 @@
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.4.0",
+    "frimousse": "^0.4.0",
     "katex": "^0.16.47",
     "lucide-react": "^1.52.0",
     "nanoid": "^6.0.2",
@@ -43,6 +46,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "emojibase-data": "^17.0.0",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"

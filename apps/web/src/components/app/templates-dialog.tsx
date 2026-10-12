@@ -20,6 +20,7 @@ import { downloadText, safeFileName } from "@/lib/export";
 import { api, type Template, type TemplateInput } from "@/lib/api";
 import { useHub } from "@/lib/hub";
 import { cn } from "@/lib/utils";
+import { EmojiField } from "./emoji-field";
 
 const empty: TemplateInput = { name: "", icon: "✨", description: "", instructions: "" };
 
@@ -145,8 +146,8 @@ export function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenC
 
   const save = () =>
     run(async () => {
-      const saved =
-        selectedId === "new" ? await api.createTemplate(draft) : await api.updateTemplate(selectedId!, draft);
+      const input = { ...draft, icon: draft.icon || "✨" };
+      const saved = selectedId === "new" ? await api.createTemplate(input) : await api.updateTemplate(selectedId!, input);
       const projectCount = selectedId === "new" ? 0 : (selected?.projectCount ?? 0);
       await refresh();
       select(saved);
@@ -321,11 +322,11 @@ export function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenC
               <div className="flex gap-3">
                 <div className="grid w-16 gap-2">
                   <Label htmlFor="tpl-icon">Icono</Label>
-                  <Input
+                  <EmojiField
                     id="tpl-icon"
                     value={draft.icon}
-                    className="text-center"
-                    onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
+                    fallback="✨"
+                    onChange={(icon) => setDraft({ ...draft, icon })}
                   />
                 </div>
                 <div className="grid flex-1 gap-2">

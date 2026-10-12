@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, type Project } from "@/lib/api";
 import { useHub } from "@/lib/hub";
 import { cn } from "@/lib/utils";
+import { EmojiField } from "./emoji-field";
 import { KnowledgePanel } from "./knowledge-panel";
 
 /** Creates a project from a template, or edits an existing project's name, icon and instructions. */
@@ -71,7 +72,7 @@ export function ProjectDialog({ project, onClose }: { project?: Project; onClose
             {project && (
               <div className="grid w-16 gap-2">
                 <Label htmlFor="icon">Icono</Label>
-                <Input id="icon" value={icon} onChange={(e) => setIcon(e.target.value)} className="text-center" />
+                <EmojiField id="icon" value={icon} fallback="📁" onChange={setIcon} />
               </div>
             )}
             <div className="grid flex-1 gap-2">
