@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc -p .",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "test": "node --import tsx --import ./src/test-setup.ts --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.76",
