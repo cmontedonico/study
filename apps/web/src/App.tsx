@@ -2,6 +2,7 @@ import { MessageSquarePlus } from "lucide-react";
 import { useEffect } from "react";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { ConnectionBanner } from "@/components/app/connection-banner";
+import { NewChatDialog } from "@/components/app/new-chat-dialog";
 import { ChatView } from "@/components/app/chat-view";
 import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -20,6 +21,7 @@ export default function App() {
           </SidebarInset>
         </SidebarProvider>
         <ConnectionBanner />
+        <NewChatDialog />
         <Toaster position="top-center" />
       </TooltipProvider>
     </HubProvider>
@@ -27,7 +29,7 @@ export default function App() {
 }
 
 function Main() {
-  const { state, threadId, newThread } = useHub();
+  const { state, threadId, pickNewChat } = useHub();
   const { setOpenMobile } = useSidebar();
   const thread = state?.threads.find((t) => t.id === threadId);
 
@@ -46,7 +48,7 @@ function Main() {
         <p className="text-muted-foreground max-w-sm">
           Empieza un chat suelto o crea un proyecto con instrucciones para que Claude te guíe.
         </p>
-        <Button onClick={() => void newThread(null)}>
+        <Button onClick={() => pickNewChat(null)}>
           <MessageSquarePlus /> Nuevo chat
         </Button>
       </div>

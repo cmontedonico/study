@@ -49,7 +49,7 @@ test("forks keep the parent's template", async () => {
   const parent = (await (await send("/threads", "POST", { templateId: template.id })).json()) as ThreadRow;
   await db
     .insert(schema.messages)
-    .values({ id: "m1", threadId: parent.id, role: "user", parts: "[]", position: 0 });
+    .values({ id: "m1", threadId: parent.id, role: "user", parts: [], position: 0 });
   const fork = (await (await send(`/threads/${parent.id}/fork`, "POST", { messageId: "m1" })).json()) as ThreadRow;
   assert.equal(fork.templateId, template.id);
   assert.equal(fork.templateInstructions, "Enseña paso a paso.");
