@@ -46,6 +46,7 @@ import { isAudioFile } from "@/lib/audio";
 import { api, engines, type Engine, type Thread } from "@/lib/api";
 import { downloadMarkdown, threadToMarkdown } from "@/lib/export";
 import { useHub } from "@/lib/hub";
+import { ThinkingIndicator } from "@/components/app/thinking-indicator";
 import { UsageFooter } from "./usage-footer";
 
 /** Files from the prompt input keep the attachment id (see prompt-input.tsx). */
@@ -214,6 +215,12 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
   }
 
   const lastAssistantId = messages.findLast((m) => m.role === "assistant")?.id;
+  const lastMessage = messages.at(-1);
+  // The CLI engine can take seconds to emit text, and may send empty/step-start/reasoning parts first.
+  const waitingForText =
+    status === "submitted" ||
+    (status === "streaming" &&
+      (lastMessage?.role !== "assistant" || !lastMessage.parts.some((p) => p.type === "text" && p.text.trim())));
 
   return (
     <>
@@ -281,6 +288,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
               </Message>
             ))
           )}
+          {waitingForText && <ThinkingIndicator />}
         </ConversationContent>
         <KeepBottomOnViewportResize />
         <ConversationScrollButton />
