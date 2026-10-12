@@ -37,6 +37,10 @@ export interface Template {
   description: string;
   instructions: string;
   builtIn: boolean;
+  /** Built-in edited by the user. */
+  customized: boolean;
+  /** Projects created from this template. */
+  projectCount: number;
 }
 
 export interface KnowledgeFile {
@@ -61,6 +65,8 @@ export interface HubState {
   projects: Project[];
   threads: Thread[];
   templates: Template[];
+  /** Built-in templates deleted by the user (recoverable). */
+  hiddenTemplateCount: number;
   settings: Settings;
 }
 
@@ -123,6 +129,10 @@ export const api = {
   updateTemplate: (id: string, body: Partial<TemplateInput>) =>
     request<Template>(`/templates/${id}`, json("PATCH", body)),
   deleteTemplate: (id: string) => request(`/templates/${id}`, { method: "DELETE" }),
+  restoreTemplate: (id: string) => request<Template>(`/templates/${id}/restore`, { method: "POST" }),
+  restoreHiddenTemplates: () => request<{ count: number }>("/templates/restore-hidden", { method: "POST" }),
+  applyTemplateToProjects: (id: string) =>
+    request<{ count: number }>(`/templates/${id}/apply-to-projects`, { method: "POST" }),
   templateFromProject: (projectId: string) =>
     request<Template>(`/templates/from-project/${projectId}`, { method: "POST" }),
 
