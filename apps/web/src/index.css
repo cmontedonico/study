@@ -160,8 +160,11 @@
   [data-sidebar="trigger"] {
     min-width: 40px;
   }
+}
 
-  /* iOS keeps the layout viewport tall when the keyboard opens: lib/viewport.ts feeds the real height. */
+/* iOS keeps the layout viewport tall when the keyboard opens: lib/viewport.ts feeds the real height.
+   Lives in `utilities` (after Tailwind's own) so it beats `h-dvh` without !important. */
+@layer utilities {
   .h-dvh {
     height: var(--app-height, 100dvh);
   }

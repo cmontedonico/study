@@ -1,3 +1,4 @@
+import { KeepBottomOnViewportResize } from "@/components/app/keep-bottom-on-viewport";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type FileUIPart, type UIMessage } from "ai";
 import {
@@ -65,7 +66,7 @@ export function ChatView({ thread }: { thread: Thread }) {
   }, [thread.id]);
 
   return (
-    <div className="flex h-dvh min-w-0 flex-1 flex-col">
+    <div className="flex h-dvh min-h-0 min-w-0 flex-none flex-col overflow-hidden">
       <ChatHeader thread={thread} />
       {initial && (
         <AudioUploadsProvider key={thread.id}>
@@ -284,6 +285,7 @@ function Chat({ thread, initialMessages }: { thread: Thread; initialMessages: UI
             ))
           )}
         </ConversationContent>
+        <KeepBottomOnViewportResize />
         <ConversationScrollButton />
       </Conversation>
 
