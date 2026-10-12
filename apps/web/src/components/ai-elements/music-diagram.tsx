@@ -6,7 +6,8 @@ import type { ChordSpec } from "@/lib/chord-block";
 
 // Custom fenced-block renderers for the guitar tutor (```chord, ```abc). Registered in streamdown-renderer.tsx as
 // part of `plugins.renderers`; other features add their own arrays the same way (language -> component).
-// Diagrams are drawn in black on transparent and inverted in dark mode, so they follow the app theme.
+// Notation is always black on a white "paper" card, in light and dark theme (no inversion).
+const PAPER = "my-4 rounded-xl border border-border bg-white p-3 text-black shadow-xs";
 
 function Fallback({ code, language, error }: { code: string; language: string; error?: string }) {
   return (
@@ -37,7 +38,7 @@ function ChordDiagram({ spec }: { spec: ChordSpec }) {
           title: spec.name,
           noPosition: l.position === 1,
           color: "#000",
-          backgroundColor: "transparent",
+          backgroundColor: "#fff",
           fingerTextColor: "#fff",
           tuning: spec.frets.length === 6 ? ["E", "A", "D", "G", "B", "E"] : undefined,
           fontFamily: "inherit",
@@ -53,7 +54,7 @@ function ChordDiagram({ spec }: { spec: ChordSpec }) {
       cancelled = true;
     };
   }, [spec]);
-  return <div ref={ref} className="w-36 shrink-0 dark:invert sm:w-40 [&_svg]:h-auto [&_svg]:w-full" />;
+  return <div ref={ref} className="w-36 shrink-0 text-black sm:w-40 [&_svg]:h-auto [&_svg]:w-full" />;
 }
 
 interface BlockProps {
@@ -67,7 +68,7 @@ function ChordRenderer({ code, isIncomplete, language }: BlockProps) {
   if (!parsed) return <Fallback code={code} language={language} />;
   if (!parsed.ok) return <Fallback code={code} language={language} error={parsed.error} />;
   return (
-    <div className="my-4 flex flex-wrap gap-4 rounded-xl border bg-background p-3" role="group" aria-label="Diagramas de acordes">
+    <div className={`${PAPER} flex flex-wrap gap-4`} role="group" aria-label="Diagramas de acordes">
       {parsed.chords.map((spec, i) => (
         <ChordDiagram key={i} spec={spec} />
       ))}
@@ -91,22 +92,58 @@ function splitAbc(code: string) {
   return { tab, body };
 }
 
+const ABC_SCALE = 1.3;
+
+const BARS_PER_LINE = 4;
+
+// abcjs ignores `wrap` when a tablature is requested, so long tunes get a line break every few bars instead.
+function breakLongLines(body: string) {
+  return body
+    .split("\n")
+    .map((line) => {
+      if (/^\s*([A-Za-z]:|%)/.test(line)) return line;
+      const parts = line.split(/(\|\]|\|\||\|:|:\||\|)/);
+      let out = "";
+      let bars = 0;
+      parts.forEach((part, i) => {
+        out += part;
+        if (i % 2 === 1 && ++bars % BARS_PER_LINE === 0 && parts.slice(i + 1).join("").trim()) out += "\n";
+      });
+      return out;
+    })
+    .join("\n");
+}
+
 function AbcScore({ code, language }: { code: string; language: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
+  const [width, setWidth] = useState(0);
+  // Re-render at the card's width so staff + tab fill it (abcjs wraps long tunes into several lines).
+  useEffect(() => {
+    const host = ref.current;
+    if (!host) return;
+    const ro = new ResizeObserver(() => setWidth(Math.round(host.clientWidth)));
+    ro.observe(host);
+    setWidth(Math.round(host.clientWidth));
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     let cancelled = false;
     const host = ref.current;
-    if (!host) return;
+    if (!host || width < 100) return;
     void import("abcjs").then(({ renderAbc }) => {
       if (cancelled) return;
       const { tab, body } = splitAbc(code);
       host.replaceChildren();
       try {
-        const tunes = renderAbc(host, body, {
+        const tunes = renderAbc(host, tab ? breakLongLines(body) : body, {
           responsive: "resize",
           add_classes: false,
-          ...(tab ? { tablature: [{ instrument: "guitar" }] } : {}),
+          scale: ABC_SCALE,
+          staffwidth: Math.max(200, Math.floor(width / ABC_SCALE)),
+          ...(tab
+            ? { tablature: [{ instrument: "guitar" }] }
+            : { wrap: { minSpacing: 1.8, maxSpacing: 2.7, preferredMeasuresPerLine: 4 } }),
         });
         const ok = tunes.some((t) => t.lines && t.lines.length > 0) && host.querySelector("svg");
         setError(ok ? undefined : "notación ABC no válida");
@@ -117,11 +154,11 @@ function AbcScore({ code, language }: { code: string; language: string }) {
     return () => {
       cancelled = true;
     };
-  }, [code]);
+  }, [code, width]);
   return (
     <>
-      <div className={error ? "hidden" : "my-4 overflow-x-auto rounded-xl border bg-background p-3"}>
-        <div ref={ref} className="dark:invert [&_svg]:h-auto [&_svg]:w-full" />
+      <div className={error ? "hidden" : `${PAPER} max-w-full overflow-x-auto`}>
+        <div ref={ref} className="w-full text-black [&_svg]:h-auto [&_svg]:max-w-full" />
       </div>
       {error && <Fallback code={code} language={language} error={error} />}
     </>
