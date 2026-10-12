@@ -10,7 +10,13 @@ if (!process.env.HUB_DATA_DIR) {
   migrateLegacyDataDir(join(appSupport, "claude-hub"), join(appSupport, "StudyLab", "data"));
 }
 
-export const dataDir = process.env.HUB_DATA_DIR ?? join(appSupport, "StudyLab", "data");
+const defaultDataDir = join(appSupport, "StudyLab", "data");
+export const dataDir = process.env.HUB_DATA_DIR ?? defaultDataDir;
+
+// Safety net: node --test sets NODE_TEST_CONTEXT in test processes; never touch the user's real data there.
+if (process.env.NODE_TEST_CONTEXT && dataDir === defaultDataDir) {
+  throw new Error("Tests must set HUB_DATA_DIR (see src/test-setup.ts); refusing to use the real data dir.");
+}
 export const filesDir = join(dataDir, "files");
 export const dbPath = join(dataDir, "hub.db");
 
